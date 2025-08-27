@@ -1,0 +1,197 @@
+/* Premium Chart Styling */
+
+.premium-chart-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.premium-chart-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.premium-chart-card .recharts-wrapper {
+  border-radius: 8px;
+}
+
+.premium-chart-card .recharts-cartesian-grid-horizontal line {
+  stroke: #f1f5f9;
+  stroke-dasharray: 3 3;
+}
+
+.premium-chart-card .recharts-cartesian-grid-vertical line {
+  display: none;
+}
+
+.premium-chart-card .recharts-xAxis .recharts-cartesian-axis-tick-value {
+  fill: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.premium-chart-card .recharts-yAxis .recharts-cartesian-axis-tick-value {
+  fill: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.premium-chart-card .recharts-tooltip-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.premium-chart-card .recharts-tooltip-content {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.premium-chart-card .recharts-legend-wrapper {
+  padding-top: 20px;
+}
+
+.premium-chart-card .recharts-legend-item {
+  margin-right: 20px;
+}
+
+.premium-chart-card .recharts-legend-item-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* Premium Bar Chart Animations */
+.premium-chart-card .recharts-bar {
+  animation: barGrow 0.8s ease-out;
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+/* Premium Line Chart Animations */
+.premium-chart-card .recharts-line-curve {
+  animation: lineGrow 1.2s ease-out;
+}
+
+@keyframes lineGrow {
+  from {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Premium Pie Chart Animations */
+.premium-chart-card .recharts-pie-sector {
+  animation: pieGrow 0.8s ease-out;
+}
+
+@keyframes pieGrow {
+  from {
+    transform: scale(0);
+    transform-origin: center;
+  }
+  to {
+    transform: scale(1);
+    transform-origin: center;
+  }
+}
+
+/* Chart Card Header Enhancements */
+.premium-chart-card .card-header {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 20px;
+}
+
+.premium-chart-card .card-content {
+  padding: 20px;
+}
+
+/* Responsive Chart Styling */
+@media (max-width: 768px) {
+  .premium-chart-card {
+    margin: 8px 0;
+  }
+  
+  .premium-chart-card .card-content {
+    padding: 12px;
+  }
+  
+  .premium-chart-card .recharts-xAxis .recharts-cartesian-axis-tick-value {
+    font-size: 10px;
+  }
+  
+  .premium-chart-card .recharts-yAxis .recharts-cartesian-axis-tick-value {
+    font-size: 10px;
+  }
+}
+
+/* Premium Loading States */
+.chart-loading {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Premium Color Palette */
+.chart-color-primary { color: #3b82f6; }
+.chart-color-secondary { color: #10b981; }
+.chart-color-accent { color: #f59e0b; }
+.chart-color-danger { color: #ef4444; }
+.chart-color-purple { color: #8b5cf6; }
+.chart-color-pink { color: #ec4899; }
+.chart-color-cyan { color: #06b6d4; }
+.chart-color-lime { color: #84cc16; }
+
+/* Chart Interaction States */
+.premium-chart-card .recharts-active-dot {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Premium Grid Styling */
+.charts-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+@media (max-width: 640px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

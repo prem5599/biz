@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Analytics OAuth Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .auth-section {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .auth-section.hidden {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(66, 133, 244, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #e83e8c);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #4285f4;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4285f4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #dc3545;
+        }
+
+        .success {
+            background: #d1e7dd;
+            color: #0f5132;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #198754;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .path-cell {
+            font-family: 'Monaco', 'Consolas', monospace;
+            color: #4285f4;
+            font-size: 0.9rem;
+        }
+
+        .number-cell {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .report-meta {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .cached-badge {
+            background: #ffc107;
+            color: #212529;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>📊 Analytics Dashboard</h1>
+                <p>Connect your Google Analytics account to view detailed insights</p>
+            </div>
+
+            <div class="content">
+                <div id="message"></div>
+
+                <!-- Authentication Section -->
+                <div id="authSection" class="auth-section">
+                    <h2>Connect Your Google Analytics Account</h2>
+                    <p>Click below to authorize access to your Google Analytics data</p>
+                    <br>
+                    <button id="connectBtn" class="btn" onclick="initiateGoogleAuth()">
+                        🔗 Connect Google Analytics
+                    </button>
+                </div>
+
+                <!-- Connected Section -->
+                <div id="connectedSection" class="auth-section hidden">
+                    <div class="status connected">
+                        <div>
+                            <strong>✅ Connected to Google Analytics</strong>
+                            <p>You can now access your analytics data</p>
+                        </div>
+                        <button class="btn btn-danger" onclick="revokeAccess()">
+                            Disconnect
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="propertySelect">Select Analytics Property:</label>
+                        <select id="propertySelect" onchange="onPropertySelect()">
+                            <option value="">Choose a property...</option>
+                        </select>
+                    </div>
+
+                    <div class="actions">
+                        <button class="btn btn-secondary" onclick="fetchPageViews()" disabled id="fetchBtn">
+                            📈 Fetch Page Views
+                        </button>
+                        <button class="btn btn-secondary" onclick="fetchCustomReport()" disabled id="customBtn">
+                            📊 Custom Report
+                        </button>
+                    </div>
+
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        Loading analytics data...
+                    </div>
+
+                    <!-- Page Views Report -->
+                    <div id="pageViewsReport" style="display: none;">
+                        <div class="report-header">
+                            <h3>Page Views Report</h3>
+                            <div class="report-meta">
+                                <span id="dateRange"></span>
+                                <span id="cachedBadge" class="cached-badge" style="display: none;">Cached</span>
+                            </div>
+                        </div>
+                        
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Page Path</th>
+                                    <th>Page Title</th>
+                                    <th>Page Views</th>
+                                    <th>Sessions</th>
+                                    <th>Bounce Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pageViewsTableBody">
+                            </tbody>
+                        </table>
+                        
+                        <div class="report-meta" style="margin-top: 15px;">
+                            <span id="totalRows"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        const USER_ID = 'demo-user-' + Math.random().toString(36).substr(2, 9);
+        let isAuthenticated = false;
+
+        // Check URL for auth success/error
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('userId')) {
+            showMessage('✅ Successfully connected to Google Analytics!', 'success');
+            checkAuthStatus();
+        } else if (urlParams.get('error')) {
+            showMessage(`❌ Authentication error: ${urlParams.get('error')}`, 'error');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthStatus();
+        });
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/status/${USER_ID}`);
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    isAuthenticated = true;
+                    showConnectedSection();
+                    await fetchAccounts();
+                } else {
+                    showAuthSection();
+                }
+            } catch (error) {
+                console.error('Auth status check failed:', error);
+                showAuthSection();
+            }
+        }
+
+        async function initiateGoogleAuth() {
+            try {
+                const btn = document.getElementById('connectBtn');
+                btn.disabled = true;
+                btn.innerHTML = '🔄 Connecting...';
+
+                const response = await fetch(`${API_BASE}/auth-google?userId=${USER_ID}`);
+                const data = await response.json();
+
+                if (data.authUrl) {
+                    window.location.href = data.authUrl;
+                } else {
+                    throw new Error('Failed to get auth URL');
+                }
+            } catch (error) {
+                showMessage(`❌ ${error.message}`, 'error');
+                const btn = document.getElementById('connectBtn');
+                btn.disabled = false;
+                btn.innerHTML = '🔗 Connect Google Analytics';
+            }
+        }
+
+        async function fetchAccounts() {
+            try {
+                const response = await fetch(`${API_BASE}/analytics/accounts/${USER_ID}`);
+                const data = await response.json();
+                
+                populatePropertySelect(data.accounts);
+            } catch (error) {
+                showMessage('❌ Failed to fetch Analytics accounts', 'error');
+            }
+        }
+
+        function populatePropertySelect(accounts) {
+            const select = document.getElementById('propertySelect');
+            select.innerHTML = '<option value="">Choose a property...</option>';
+            
+            accounts.forEach(account => {
+                if (account.properties) {
+                    account.properties.forEach(property => {
+                        const option = document.createElement('option');
+                        option.value = property.id;
+                        option.textContent = `${account.name} - ${property.name}`;
+                        select.appendChild(option);
+                    });
+                }
+            });
+        }
+
+        function onPropertySelect() {
+            const select = document.getElementById('propertySelect');
+            const hasProperty = select.value !== '';
+            
+            document.getElementById('fetchBtn').disabled = !hasProperty;
+            document.getElementById('customBtn').disabled = !hasProperty;
+        }
+
+        async function fetchPageViews() {
+            const propertyId = document.getElementById('propertySelect').value;
+            if (!propertyId) return;
+
+            showLoading(true);
+            hideReport();
+
+            try {
+                const response = await fetch(
+                    `${API_BASE}/analytics/pageviews/${USER_ID}/${propertyId}?startDate=7daysAgo&endDate=today`
+                );
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayPageViewsReport(data);
+                } else {
+                    throw new Error(data.error || 'Failed to fetch page views');
+                }
+            } catch (error) {
+                showMessage(`❌ ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayPageViewsReport(data) {
+            const tbody = document.getElementById('pageViewsTableBody');
+            tbody.innerHTML = '';
+
+            data.pageViews.forEach(page => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="path-cell">${page.pagePath}</td>
+                    <td>${page.pageTitle || 'N/A'}</td>
+                    <td class="number-cell">${page.pageViews.toLocaleString()}</td>
+                    <td class="number-cell">${page.sessions.toLocaleString()}</td>
+                    <td class="number-cell">${(page.bounceRate * 100).toFixed(1)}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('dateRange').textContent = 
+                `${data.dateRange.startDate} to ${data.dateRange.endDate}`;
+            
+            document.getElementById('totalRows').textContent = 
+                `Total Rows: ${data.totalRows}`;
+
+            const cachedBadge = document.getElementById('cachedBadge');
+            cachedBadge.style.display = data.cached ? 'inline' : 'none';
+
+            document.getElementById('pageViewsReport').style.display = 'block';
+        }
+
+        async function revokeAccess() {
+            if (!confirm('Are you sure you want to disconnect your Google Analytics account?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/revoke/${USER_ID}`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    isAuthenticated = false;
+                    showAuthSection();
+                    hideReport();
+                    showMessage('✅ Successfully disconnected from Google Analytics', 'success');
+                } else {
+                    throw new Error('Failed to revoke access');
+                }
+            } catch (error) {
+                showMessage(`❌ ${error.message}`, 'error');
+            }
+        }
+
+        function showAuthSection() {
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('connectedSection').classList.add('hidden');
+        }
+
+        function showConnectedSection() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('connectedSection').classList.remove('hidden');
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function hideReport() {
+            document.getElementById('pageViewsReport').style.display = 'none';
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = type;
+            messageDiv.innerHTML = message;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Custom report functionality
+        async function fetchCustomReport() {
+            const propertyId = document.getElementById('propertySelect').value;
+            if (!propertyId) return;
+
+            const reportConfig = {
+                propertyId: propertyId,
+                startDate: '30daysAgo',
+                endDate: 'today',
+                metrics: [
+                    { name: 'screenPageViews' },
+                    { name: 'sessions' },
+                    { name: 'activeUsers' }
+                ],
+                dimensions: [
+                    { name: 'country' },
+                    { name: 'deviceCategory' }
+                ],
+                limit: 20
+            };
+
+            showLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE}/analytics/reports/${USER_ID}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(reportConfig)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    console.log('Custom Report Data:', data);
+                    showMessage('✅ Custom report data logged to console', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to fetch custom report');
+                }
+            } catch (error) {
+                showMessage(`❌ ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+    </script>
+</body>
+</html>
