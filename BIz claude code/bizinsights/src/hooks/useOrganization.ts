@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@clerk/nextjs'
 
 interface Organization {
   id: string
@@ -42,12 +42,12 @@ async function fetchOrganizations(): Promise<Organization[]> {
 }
 
 export function useOrganizations() {
-  const { data: session } = useSession()
-  
+  const { isSignedIn } = useAuth()
+
   return useQuery({
     queryKey: ['organizations'],
     queryFn: fetchOrganizations,
-    enabled: !!session,
+    enabled: !!isSignedIn,
     staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes
   })
 }
