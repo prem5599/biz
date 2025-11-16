@@ -35,8 +35,6 @@ export default function SignUpPage() {
                 footerActionLink: "text-blue-600 hover:text-blue-700",
               },
             }}
-            redirectUrl="/dashboard/integrations/easy?welcome=true"
-            signInUrl="/auth/signin"
           />
         </div>
 
