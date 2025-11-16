@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ import { showToast } from '@/components/ui/toast-helper'
 import { ShoppingBag, CreditCard, BarChart, Facebook, RefreshCw, ShoppingCart, X, Clock, CheckCircle2, AlertCircle, Zap, ExternalLink } from 'lucide-react'
 import { useCurrentOrganization } from '@/hooks/useOrganization'
 import { useDashboard } from '@/hooks/useDashboard'
+import { ShopifyOAuthDialog } from '@/components/integrations/shopify-oauth-dialog'
 
 const integrations = [
   {
@@ -67,11 +69,13 @@ const integrations = [
 ]
 
 export default function Integrations() {
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState<string | null>(null)
   const [connectedIntegrations, setConnectedIntegrations] = useState<Set<string>>(new Set())
   const [integrationStatuses, setIntegrationStatuses] = useState<Record<string, { lastSyncAt?: string; status: string }>>({})
   const [showWooCommerceModal, setShowWooCommerceModal] = useState(false)
   const [showShopifyModal, setShowShopifyModal] = useState(false)
+  const [showShopifyOAuthDialog, setShowShopifyOAuthDialog] = useState(false)
   const [showStripeModal, setShowStripeModal] = useState(false)
   const [showGoogleAnalyticsModal, setShowGoogleAnalyticsModal] = useState(false)
   const [showFacebookAdsModal, setShowFacebookAdsModal] = useState(false)
@@ -98,6 +102,27 @@ export default function Integrations() {
   })
   const { organization } = useCurrentOrganization()
   const { data: dashboardData } = useDashboard(organization?.id || null)
+
+  // Handle OAuth callback results
+  useEffect(() => {
+    const oauthResult = searchParams.get('oauth_result')
+    const platform = searchParams.get('platform')
+    const shop = searchParams.get('shop')
+    const error = searchParams.get('error')
+    const message = searchParams.get('message')
+
+    if (oauthResult === 'success') {
+      showToast.success(message || `${platform} connected successfully!`)
+      // Reload integrations to show updated status
+      loadIntegrations()
+      // Clean up URL parameters
+      window.history.replaceState({}, '', '/dashboard/integrations')
+    } else if (oauthResult === 'error') {
+      showToast.error(message || `Failed to connect ${platform}. Please try again.`)
+      // Clean up URL parameters
+      window.history.replaceState({}, '', '/dashboard/integrations')
+    }
+  }, [searchParams])
 
   // Load real integration status
   useEffect(() => {
@@ -162,10 +187,12 @@ export default function Integrations() {
 
   const handleConnect = async (integrationId: string) => {
     setLoading(integrationId)
-    
+
     try {
       if (integrationId === 'shopify') {
-        setShowShopifyModal(true)
+        // Use OAuth flow for single-click authentication
+        setShowShopifyOAuthDialog(true)
+        setLoading(null) // Reset loading state since dialog handles it
       } else if (integrationId === 'stripe') {
         setShowStripeModal(true)
       } else if (integrationId === 'google-analytics') {
@@ -1382,6 +1409,15 @@ For now, connect Shopify, WooCommerce, or Stripe to start analyzing your sales d
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Shopify OAuth Dialog - Single Click Connection */}
+      {organization?.id && (
+        <ShopifyOAuthDialog
+          isOpen={showShopifyOAuthDialog}
+          onClose={() => setShowShopifyOAuthDialog(false)}
+          organizationId={organization.id}
+        />
+      )}
     </DashboardLayout>
   )
 }
