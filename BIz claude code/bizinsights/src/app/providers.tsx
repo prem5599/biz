@@ -1,6 +1,5 @@
 'use client'
 
-import { SessionProvider } from 'next-auth/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { CurrencyProvider } from '@/contexts/CurrencyContext'
 import { useState } from 'react'
@@ -10,11 +9,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
 
   return (
-    <SessionProvider>
-      <QueryClientProvider client={queryClient}>
-        <CurrencyProvider>
-          {children}
-          <Toaster
+    <QueryClientProvider client={queryClient}>
+      <CurrencyProvider>
+        {children}
+        <Toaster
             position="top-right"
             reverseOrder={false}
             gutter={8}
@@ -70,8 +68,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               },
             }}
           />
-        </CurrencyProvider>
-      </QueryClientProvider>
-    </SessionProvider>
+      </CurrencyProvider>
+    </QueryClientProvider>
   )
 }
