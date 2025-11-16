@@ -240,7 +240,7 @@ function redirectToFrontend(params: {
   message?: string
 }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3002'
-  const callbackUrl = new URL('/dashboard/integrations', appUrl)
+  const callbackUrl = new URL('/dashboard/integrations/oauth', appUrl)
 
   // Add result parameters
   callbackUrl.searchParams.set('oauth_result', params.success ? 'success' : 'error')
