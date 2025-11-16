@@ -1,7 +1,7 @@
 'use client'
 
 import '@/styles/charts.css'
-import { useSession } from 'next-auth/react'
+import { useUser } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { MetricCard } from '@/components/dashboard/metric-card'
@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 
 export default function Dashboard() {
-  const { data: session, status } = useSession()
+  const { user, isLoaded } = useUser()
   const { organization, isLoading: orgLoading } = useCurrentOrganization()
   const { currency } = useCurrency()
   const { data: dashboardData, isLoading: dashboardLoading, error } = useDashboard(organization?.id || null)
@@ -72,7 +72,7 @@ export default function Dashboard() {
     staleTime: 10 * 60 * 1000, // 10 minutes
   })
 
-  if (status === 'loading' || orgLoading) {
+  if (!isLoaded || orgLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div>Loading...</div>
@@ -80,7 +80,7 @@ export default function Dashboard() {
     )
   }
 
-  if (!session) {
+  if (!user) {
     redirect('/auth/signin')
   }
 

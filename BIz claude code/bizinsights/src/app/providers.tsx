@@ -11,8 +11,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <CurrencyProvider>
-        {children}
-        <Toaster
+          {children}
+          <Toaster
             position="top-right"
             reverseOrder={false}
             gutter={8}
@@ -68,7 +68,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               },
             }}
           />
-      </CurrencyProvider>
+        </CurrencyProvider>
     </QueryClientProvider>
   )
 }

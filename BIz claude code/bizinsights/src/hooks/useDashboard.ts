@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useSession } from 'next-auth/react'
+import { useUser } from '@clerk/nextjs'
 
 interface DashboardData {
   metrics: {
@@ -45,19 +45,19 @@ async function fetchDashboardData(organizationId: string, period: string = '30d'
 }
 
 export function useDashboard(organizationId: string | null, period: string = '30d') {
-  const { data: session } = useSession()
+  const { user } = useUser()
   
   return useQuery({
     queryKey: ['dashboard', organizationId, period],
     queryFn: () => fetchDashboardData(organizationId!, period),
-    enabled: !!session && !!organizationId,
+    enabled: !!user && !!organizationId,
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes
   })
 }
 
 export function useInsights(organizationId: string | null) {
-  const { data: session } = useSession()
+  const { user } = useUser()
   
   return useQuery({
     queryKey: ['insights', organizationId],
@@ -76,7 +76,7 @@ export function useInsights(organizationId: string | null) {
       const data = await response.json()
       return data.data
     },
-    enabled: !!session && !!organizationId,
+    enabled: !!user && !!organizationId,
     refetchInterval: 30 * 60 * 1000, // Refetch every 30 minutes
     staleTime: 15 * 60 * 1000, // Consider data stale after 15 minutes
   })
