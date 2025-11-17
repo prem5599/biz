@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { CreateOrganizationForm } from '@/components/organization/create-organization-form'
 import { useCurrentOrganization } from '@/hooks/useOrganization'
 import { useTeam } from '@/hooks/useTeam'
 import { Users, UserPlus, Mail, Shield, Crown, User } from 'lucide-react'
@@ -35,14 +36,7 @@ export default function Team() {
   }
 
   if (!organization) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">No Organization Found</h2>
-          <p className="text-gray-600">Please create an organization to continue.</p>
-        </div>
-      </div>
-    )
+    return <CreateOrganizationForm />
   }
 
   const teamMembers = teamData.members

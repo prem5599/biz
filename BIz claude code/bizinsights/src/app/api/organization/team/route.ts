@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import crypto from 'crypto'
@@ -19,9 +18,9 @@ const teamInvitationSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth()
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
     const membershipCheck = await prisma.organizationMember.findFirst({
       where: {
         organizationId,
-        userId: session.user.id
+        userId: userId
       }
     })
 
@@ -129,9 +128,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth()
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -146,7 +145,7 @@ export async function POST(request: NextRequest) {
     const membershipCheck = await prisma.organizationMember.findFirst({
       where: {
         organizationId,
-        userId: session.user.id,
+        userId: userId,
         role: { in: ['OWNER', 'ADMIN'] }
       }
     })
@@ -203,14 +202,14 @@ export async function POST(request: NextRequest) {
             role: validatedData.role,
             token,
             expiresAt,
-            invitedBy: session.user.id
+            invitedBy: userId
           }
         })
 
         // Log the invitation
         await prisma.auditLog.create({
           data: {
-            userId: session.user.id,
+            userId: userId,
             organizationId,
             action: 'CREATE',
             entityType: 'TEAM_INVITATION',
@@ -274,7 +273,7 @@ export async function POST(request: NextRequest) {
         // Log the role change
         await prisma.auditLog.create({
           data: {
-            userId: session.user.id,
+            userId: userId,
             organizationId,
             action: 'UPDATE',
             entityType: 'ORGANIZATION_MEMBER',
@@ -314,9 +313,9 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth()
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -333,7 +332,7 @@ export async function DELETE(request: NextRequest) {
     const membershipCheck = await prisma.organizationMember.findFirst({
       where: {
         organizationId,
-        userId: session.user.id,
+        userId: userId,
         role: { in: ['OWNER', 'ADMIN'] }
       }
     })
@@ -362,7 +361,7 @@ export async function DELETE(request: NextRequest) {
       }
 
       // Can't remove yourself
-      if (targetMember.userId === session.user.id) {
+      if (targetMember.userId === userId) {
         return NextResponse.json(
           { error: 'Cannot remove yourself' },
           { status: 400 }
@@ -376,7 +375,7 @@ export async function DELETE(request: NextRequest) {
       // Log the removal
       await prisma.auditLog.create({
         data: {
-          userId: session.user.id,
+          userId: userId,
           organizationId,
           action: 'DELETE',
           entityType: 'ORGANIZATION_MEMBER',
@@ -405,7 +404,7 @@ export async function DELETE(request: NextRequest) {
       // Log the cancellation
       await prisma.auditLog.create({
         data: {
-          userId: session.user.id,
+          userId: userId,
           organizationId,
           action: 'DELETE',
           entityType: 'TEAM_INVITATION',
