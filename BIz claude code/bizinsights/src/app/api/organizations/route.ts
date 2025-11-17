@@ -13,20 +13,28 @@ export async function GET() {
     // Ensure user exists in database
     const user = await currentUser()
     if (user) {
-      await prisma.user.upsert({
-        where: { id: userId },
-        update: {
-          email: user.emailAddresses[0]?.emailAddress || '',
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
-          image: user.imageUrl
-        },
-        create: {
-          id: userId,
-          email: user.emailAddresses[0]?.emailAddress || '',
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
-          image: user.imageUrl
+      const userEmail = user.emailAddresses[0]?.emailAddress
+      if (userEmail) {
+        try {
+          await prisma.user.upsert({
+            where: { id: userId },
+            update: {
+              email: userEmail,
+              name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+              image: user.imageUrl
+            },
+            create: {
+              id: userId,
+              email: userEmail,
+              name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+              image: user.imageUrl
+            }
+          })
+        } catch (error) {
+          console.error('[Organizations API GET] Error syncing user:', error)
+          // Continue anyway - user might already exist
         }
-      })
+      }
     }
 
     const organizations = await prisma.organization.findMany({
@@ -84,22 +92,31 @@ export async function POST(request: NextRequest) {
     // Ensure user exists in database
     const user = await currentUser()
     if (user) {
+      const userEmail = user.emailAddresses[0]?.emailAddress
+      if (!userEmail) {
+        console.error('[Organizations API] No email address found for user')
+        return NextResponse.json(
+          { error: 'User must have an email address' },
+          { status: 400 }
+        )
+      }
+
       try {
         await prisma.user.upsert({
           where: { id: userId },
           update: {
-            email: user.emailAddresses[0]?.emailAddress || '',
+            email: userEmail,
             name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
             image: user.imageUrl
           },
           create: {
             id: userId,
-            email: user.emailAddresses[0]?.emailAddress || '',
+            email: userEmail,
             name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
             image: user.imageUrl
           }
         })
-        console.log('[Organizations API] User synced to database')
+        console.log('[Organizations API] User synced to database:', userId)
       } catch (userError) {
         console.error('[Organizations API] Error syncing user:', userError)
         return NextResponse.json(
