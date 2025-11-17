@@ -66,11 +66,15 @@ export function CreateOrganizationForm() {
         // Refresh the page to load the organization
         router.refresh()
       } else {
-        throw new Error(result.error || 'Failed to create organization')
+        const errorMessage = result.details
+          ? `${result.error}: ${result.details}`
+          : result.error || 'Failed to create organization'
+        throw new Error(errorMessage)
       }
     } catch (error) {
       console.error('Error creating organization:', error)
-      showToast.error(error instanceof Error ? error.message : 'Failed to create organization')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create organization'
+      showToast.error(errorMessage)
       setIsCreating(false)
     }
   }

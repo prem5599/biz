@@ -75,47 +75,65 @@ export async function POST(request: NextRequest) {
     const { userId } = await auth()
 
     if (!userId) {
+      console.error('[Organizations API] No userId from auth')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    console.log('[Organizations API] Creating organization for user:', userId)
 
     // Ensure user exists in database
     const user = await currentUser()
     if (user) {
-      await prisma.user.upsert({
-        where: { id: userId },
-        update: {
-          email: user.emailAddresses[0]?.emailAddress || '',
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
-          image: user.imageUrl
-        },
-        create: {
-          id: userId,
-          email: user.emailAddresses[0]?.emailAddress || '',
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
-          image: user.imageUrl
-        }
-      })
+      try {
+        await prisma.user.upsert({
+          where: { id: userId },
+          update: {
+            email: user.emailAddresses[0]?.emailAddress || '',
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+            image: user.imageUrl
+          },
+          create: {
+            id: userId,
+            email: user.emailAddresses[0]?.emailAddress || '',
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+            image: user.imageUrl
+          }
+        })
+        console.log('[Organizations API] User synced to database')
+      } catch (userError) {
+        console.error('[Organizations API] Error syncing user:', userError)
+        return NextResponse.json(
+          { error: 'Failed to sync user to database', details: userError instanceof Error ? userError.message : String(userError) },
+          { status: 500 }
+        )
+      }
     }
 
     const { name, slug } = await request.json()
 
     if (!name || !slug) {
+      console.error('[Organizations API] Missing name or slug')
       return NextResponse.json(
         { error: 'Name and slug are required' },
         { status: 400 }
       )
     }
 
+    console.log('[Organizations API] Checking for existing org with slug:', slug)
+
     const existingOrg = await prisma.organization.findUnique({
       where: { slug }
     })
 
     if (existingOrg) {
+      console.error('[Organizations API] Slug already exists:', slug)
       return NextResponse.json(
         { error: 'Organization with this slug already exists' },
         { status: 400 }
       )
     }
+
+    console.log('[Organizations API] Creating organization:', { name, slug, userId })
 
     const organization = await prisma.organization.create({
       data: {
@@ -144,11 +162,20 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    console.log('[Organizations API] Organization created successfully:', organization.id)
     return NextResponse.json({ success: true, data: organization })
   } catch (error) {
-    console.error('Error creating organization:', error)
+    console.error('[Organizations API] Error creating organization:', error)
+    console.error('[Organizations API] Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      cause: error instanceof Error ? error.cause : undefined
+    })
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     )
   }
