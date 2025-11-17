@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import crypto from 'crypto'
+import { EmailService } from '@/lib/email/email-service'
+import { QueueService, QueueName } from '@/lib/queue/queue-service'
 
 // Team member schema for updates
 const teamMemberUpdateSchema = z.object({
@@ -223,8 +225,31 @@ export async function POST(request: NextRequest) {
           }
         })
 
-        // TODO: Send invitation email
-        
+        // Get organization and inviter details for email
+        const organization = await prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: { name: true }
+        })
+
+        const inviter = await currentUser()
+        const inviterName = inviter
+          ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.username || 'Someone'
+          : 'Someone'
+
+        // Send invitation email (async, don't wait for it)
+        const queueService = QueueService.getInstance()
+        await queueService.addJob(QueueName.EMAIL_SENDING, {
+          type: 'team-invitation',
+          to: validatedData.email,
+          inviterName,
+          organizationName: organization?.name || 'the organization',
+          role: validatedData.role,
+          invitationToken: token
+        }).catch(error => {
+          console.error('[Team API] Failed to queue invitation email:', error)
+          // Continue anyway - invitation was created
+        })
+
         return NextResponse.json({
           success: true,
           data: {

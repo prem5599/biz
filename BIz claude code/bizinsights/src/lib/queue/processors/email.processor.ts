@@ -5,168 +5,136 @@
  */
 
 import { Job } from 'bull';
-import { EmailSendingJob } from '../queue-service';
+import { EmailService } from '@/lib/email/email-service';
+
+export interface EmailSendingJob {
+  type: 'team-invitation' | 'welcome' | 'report' | 'alert' | 'password-reset'
+  to: string | string[]
+  organizationId?: string
+
+  // Team invitation specific
+  inviterName?: string
+  organizationName?: string
+  role?: string
+  invitationToken?: string
+
+  // Welcome email specific
+  userName?: string
+
+  // Report email specific
+  reportName?: string
+  reportPeriod?: string
+  reportUrl?: string
+  pdfAttachment?: Buffer
+
+  // Alert email specific
+  alertTitle?: string
+  alertMessage?: string
+  alertType?: 'info' | 'warning' | 'error' | 'success'
+  actionUrl?: string
+
+  // Password reset specific
+  resetToken?: string
+}
 
 export async function processEmailSending(job: Job<EmailSendingJob>): Promise<any> {
-  const { to, subject, template, data, organizationId } = job.data;
+  const { data } = job
 
-  console.log(`Sending email: ${subject} to ${Array.isArray(to) ? to.join(', ') : to}`);
+  console.log('[Email Processor] Processing email job:', data.type, 'to:', data.to)
 
   try {
-    await job.progress(10);
+    await job.progress(10)
 
-    // Check if email service is configured
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      console.warn('RESEND_API_KEY not configured, skipping email');
-      return {
-        success: false,
-        skipped: true,
-        reason: 'Email service not configured',
-      };
+    let result: { success: boolean; error?: string; messageId?: string }
+
+    switch (data.type) {
+      case 'team-invitation':
+        if (!data.inviterName || !data.organizationName || !data.role || !data.invitationToken) {
+          throw new Error('Missing required fields for team invitation email')
+        }
+        await job.progress(30)
+        result = await EmailService.sendTeamInvitation({
+          to: data.to as string,
+          inviterName: data.inviterName,
+          organizationName: data.organizationName,
+          role: data.role,
+          invitationToken: data.invitationToken
+        })
+        break
+
+      case 'welcome':
+        if (!data.userName) {
+          throw new Error('Missing required fields for welcome email')
+        }
+        await job.progress(30)
+        result = await EmailService.sendWelcomeEmail({
+          to: data.to as string,
+          userName: data.userName
+        })
+        break
+
+      case 'report':
+        if (!data.reportName || !data.reportPeriod) {
+          throw new Error('Missing required fields for report email')
+        }
+        await job.progress(30)
+        result = await EmailService.sendReport({
+          to: data.to,
+          reportName: data.reportName,
+          reportPeriod: data.reportPeriod,
+          reportUrl: data.reportUrl,
+          pdfAttachment: data.pdfAttachment
+        })
+        break
+
+      case 'alert':
+        if (!data.alertTitle || !data.alertMessage || !data.alertType) {
+          throw new Error('Missing required fields for alert email')
+        }
+        await job.progress(30)
+        result = await EmailService.sendAlert({
+          to: data.to,
+          alertTitle: data.alertTitle,
+          alertMessage: data.alertMessage,
+          alertType: data.alertType,
+          actionUrl: data.actionUrl
+        })
+        break
+
+      case 'password-reset':
+        if (!data.userName || !data.resetToken) {
+          throw new Error('Missing required fields for password reset email')
+        }
+        await job.progress(30)
+        result = await EmailService.sendPasswordReset({
+          to: data.to as string,
+          userName: data.userName,
+          resetToken: data.resetToken
+        })
+        break
+
+      default:
+        throw new Error(`Unknown email type: ${(data as any).type}`)
     }
 
-    await job.progress(30);
+    await job.progress(80)
 
-    // Import Resend dynamically
-    const { Resend } = await import('resend');
-    const resend = new Resend(apiKey);
+    if (!result.success) {
+      throw new Error(result.error || 'Email sending failed')
+    }
 
-    // Get email template HTML
-    const html = await getEmailTemplate(template, data);
+    await job.progress(100)
 
-    await job.progress(50);
-
-    // Send email
-    const result = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'BizInsights <noreply@bizinsights.com>',
-      to: Array.isArray(to) ? to : [to],
-      subject,
-      html,
-    });
-
-    await job.progress(100);
-
-    console.log(`Email sent successfully: ${result.id}`);
+    console.log('[Email Processor] Email sent successfully:', data.type, 'ID:', result.messageId)
 
     return {
       success: true,
-      emailId: result.id,
-      recipients: Array.isArray(to) ? to.length : 1,
+      emailId: result.messageId,
+      recipients: Array.isArray(data.to) ? data.to.length : 1,
       duration: Date.now() - job.timestamp,
-    };
-  } catch (error: any) {
-    console.error(`Email sending failed:`, error);
-    throw error;
-  }
-}
-
-/**
- * Get email template HTML
- */
-async function getEmailTemplate(template: string, data: any): Promise<string> {
-  // Email templates
-  const templates: Record<string, (data: any) => string> = {
-    'report-delivery': (data) => `
-      <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1>Your ${data.reportType} Report is Ready</h1>
-          <p>Hello,</p>
-          <p>Your ${data.reportType} report for ${data.period} has been generated and is ready for download.</p>
-          <p>
-            <a href="${process.env.APP_URL}/reports/${data.reportId}"
-               style="background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              View Report
-            </a>
-          </p>
-          <p>This report will be available for download for 7 days.</p>
-          <p>Best regards,<br>The BizInsights Team</p>
-        </body>
-      </html>
-    `,
-
-    'team-invitation': (data) => `
-      <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1>You've been invited to join ${data.organizationName}</h1>
-          <p>Hello,</p>
-          <p>${data.inviterName} has invited you to join their team on BizInsights.</p>
-          <p>
-            <a href="${process.env.APP_URL}/accept-invitation?token=${data.token}"
-               style="background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              Accept Invitation
-            </a>
-          </p>
-          <p>This invitation will expire in 7 days.</p>
-          <p>Best regards,<br>The BizInsights Team</p>
-        </body>
-      </html>
-    `,
-
-    'alert-notification': (data) => `
-      <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: ${getSeverityColor(data.severity)};">
-            ${data.severity} Alert: ${data.title}
-          </h1>
-          <p>${data.message}</p>
-          <p>
-            <a href="${process.env.APP_URL}/dashboard/alerts"
-               style="background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              View Dashboard
-            </a>
-          </p>
-          <p>Best regards,<br>The BizInsights Team</p>
-        </body>
-      </html>
-    `,
-
-    'welcome': (data) => `
-      <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1>Welcome to BizInsights!</h1>
-          <p>Hello ${data.name},</p>
-          <p>Thank you for signing up for BizInsights. We're excited to help you gain insights into your business data.</p>
-          <h2>Getting Started</h2>
-          <ol>
-            <li>Connect your first integration (Shopify, Stripe, Google Analytics)</li>
-            <li>Wait for data to sync (usually a few minutes)</li>
-            <li>Explore your dashboard and insights</li>
-          </ol>
-          <p>
-            <a href="${process.env.APP_URL}/dashboard/integrations"
-               style="background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              Connect Integration
-            </a>
-          </p>
-          <p>Best regards,<br>The BizInsights Team</p>
-        </body>
-      </html>
-    `,
-  };
-
-  const templateFn = templates[template];
-  if (!templateFn) {
-    throw new Error(`Email template not found: ${template}`);
-  }
-
-  return templateFn(data);
-}
-
-/**
- * Get color for severity level
- */
-function getSeverityColor(severity: string): string {
-  switch (severity) {
-    case 'CRITICAL':
-      return '#ef4444';
-    case 'HIGH':
-      return '#f59e0b';
-    case 'MEDIUM':
-      return '#3b82f6';
-    case 'LOW':
-      return '#10b981';
-    default:
-      return '#6b7280';
+    }
+  } catch (error) {
+    console.error('[Email Processor] Error sending email:', error)
+    throw error // Re-throw to mark job as failed
   }
 }
