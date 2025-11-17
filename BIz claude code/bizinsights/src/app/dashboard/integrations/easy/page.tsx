@@ -151,11 +151,6 @@ export default function EasyIntegrations() {
 
   const { organization, isLoading: orgLoading } = useCurrentOrganization()
 
-  // Show organization creation form if no organization exists
-  if (!orgLoading && !organization) {
-    return <CreateOrganizationForm />
-  }
-
   // Load integration statuses
   useEffect(() => {
     if (!organization?.id) return
@@ -190,6 +185,11 @@ export default function EasyIntegrations() {
 
     loadIntegrations()
   }, [organization?.id])
+
+  // Show organization creation form if no organization exists
+  if (!orgLoading && !organization) {
+    return <CreateOrganizationForm />
+  }
 
   const handleConnect = async (integrationId: string, data?: any) => {
     setConnectingIntegrations(prev => new Set(prev).add(integrationId))

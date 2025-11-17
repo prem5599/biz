@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { syncUserToDatabase } from '@/lib/user-sync'
 
 export async function GET() {
   try {
@@ -16,20 +17,12 @@ export async function GET() {
       const userEmail = user.emailAddresses[0]?.emailAddress
       if (userEmail) {
         try {
-          await prisma.user.upsert({
-            where: { id: userId },
-            update: {
-              email: userEmail,
-              name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
-              image: user.imageUrl
-            },
-            create: {
-              id: userId,
-              email: userEmail,
-              name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
-              image: user.imageUrl
-            }
-          })
+          await syncUserToDatabase(
+            userId,
+            userEmail,
+            `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+            user.imageUrl || null
+          )
         } catch (error) {
           console.error('[Organizations API GET] Error syncing user:', error)
           // Continue anyway - user might already exist
@@ -102,20 +95,12 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        await prisma.user.upsert({
-          where: { id: userId },
-          update: {
-            email: userEmail,
-            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
-            image: user.imageUrl
-          },
-          create: {
-            id: userId,
-            email: userEmail,
-            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
-            image: user.imageUrl
-          }
-        })
+        await syncUserToDatabase(
+          userId,
+          userEmail,
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+          user.imageUrl || null
+        )
         console.log('[Organizations API] User synced to database:', userId)
       } catch (userError) {
         console.error('[Organizations API] Error syncing user:', userError)
