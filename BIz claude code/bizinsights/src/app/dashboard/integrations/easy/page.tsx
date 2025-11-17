@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,19 +10,21 @@ import { Input } from '@/components/ui/input'
 import { QuickConnectCard } from '@/components/integrations/quick-connect-card'
 import { EasyIntegrationWizard } from '@/components/integrations/easy-integration-wizard'
 import { showToast } from '@/components/ui/toast-helper'
-import { 
-  ShoppingBag, 
-  CreditCard, 
-  BarChart, 
-  Facebook, 
-  ShoppingCart, 
+import {
+  ShoppingBag,
+  CreditCard,
+  BarChart,
+  Facebook,
+  ShoppingCart,
   Search,
   Filter,
   Sparkles,
   CheckCircle2,
   TrendingUp,
   Users,
-  Zap
+  Zap,
+  Rocket,
+  X
 } from 'lucide-react'
 import { useCurrentOrganization } from '@/hooks/useOrganization'
 
@@ -134,13 +137,17 @@ const categories = [
 ]
 
 export default function EasyIntegrations() {
+  const searchParams = useSearchParams()
+  const isWelcome = searchParams.get('welcome') === 'true'
+
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null)
   const [connectedIntegrations, setConnectedIntegrations] = useState<Set<string>>(new Set())
   const [connectingIntegrations, setConnectingIntegrations] = useState<Set<string>>(new Set())
   const [integrationStatuses, setIntegrationStatuses] = useState<Record<string, { lastSyncAt?: string; status: string }>>({})
-  
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(isWelcome)
+
   const { organization } = useCurrentOrganization()
 
   // Load integration statuses
@@ -352,6 +359,90 @@ export default function EasyIntegrations() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Welcome Banner */}
+        {showWelcomeBanner && connectedCount === 0 && (
+          <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <Rocket className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold mb-2">Welcome to BizInsights! 🎉</h3>
+                    <p className="text-gray-700 mb-4">
+                      Let's get you set up in under 2 minutes. Connect your first integration below to start getting AI-powered insights about your business.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                        ✓ Automatic data sync
+                      </Badge>
+                      <Badge className="bg-green-100 text-green-700 border-green-200">
+                        ✓ AI insights ready
+                      </Badge>
+                      <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                        ✓ Real-time analytics
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowWelcomeBanner(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Success Banner */}
+        {connectedCount > 0 && showWelcomeBanner && (
+          <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold mb-2">Great job! Your first integration is connected! 🚀</h3>
+                    <p className="text-gray-700 mb-3">
+                      Data is now syncing. Head to your dashboard to see AI-powered insights, or connect more integrations for deeper analytics.
+                    </p>
+                    <div className="flex gap-3">
+                      <Button
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => window.location.href = '/dashboard'}
+                      >
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        View Dashboard
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowWelcomeBanner(false)}
+                      >
+                        Connect More
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowWelcomeBanner(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
