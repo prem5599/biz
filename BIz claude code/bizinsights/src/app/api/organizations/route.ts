@@ -1,21 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth()
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Ensure user exists in database
+    const user = await currentUser()
+    if (user) {
+      await prisma.user.upsert({
+        where: { id: userId },
+        update: {
+          email: user.emailAddresses[0]?.emailAddress || '',
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+          image: user.imageUrl
+        },
+        create: {
+          id: userId,
+          email: user.emailAddresses[0]?.emailAddress || '',
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+          image: user.imageUrl
+        }
+      })
     }
 
     const organizations = await prisma.organization.findMany({
       where: {
         members: {
           some: {
-            userId: session.user.id
+            userId: userId
           }
         },
         isDeleted: false
@@ -54,10 +72,29 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth()
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Ensure user exists in database
+    const user = await currentUser()
+    if (user) {
+      await prisma.user.upsert({
+        where: { id: userId },
+        update: {
+          email: user.emailAddresses[0]?.emailAddress || '',
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+          image: user.imageUrl
+        },
+        create: {
+          id: userId,
+          email: user.emailAddresses[0]?.emailAddress || '',
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+          image: user.imageUrl
+        }
+      })
     }
 
     const { name, slug } = await request.json()
@@ -86,7 +123,7 @@ export async function POST(request: NextRequest) {
         slug,
         members: {
           create: {
-            userId: session.user.id,
+            userId: userId,
             role: 'OWNER'
           }
         }
