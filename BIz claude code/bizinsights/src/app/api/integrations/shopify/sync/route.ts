@@ -120,9 +120,14 @@ export async function POST(request: NextRequest) {
 }
 
 function decryptToken(encryptedToken: string): string {
-  // For now, return the token as-is (assuming it's stored unencrypted)
-  // In production, implement proper encryption/decryption
-  return encryptedToken
+  const { decrypt } = require('@/lib/encryption');
+  try {
+    return decrypt(encryptedToken);
+  } catch (error) {
+    // If decryption fails, assume it's old unencrypted data
+    console.warn('Token decryption failed, using as-is (migration period)');
+    return encryptedToken;
+  }
 }
 
 async function syncShopifyData(

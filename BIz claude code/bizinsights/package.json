@@ -9,6 +9,9 @@
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
     "cleanup-reports": "tsx scripts/cleanup-reports.ts",
+    "workers": "tsx workers.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run workers\"",
+    "test:redis": "npx tsx test-redis.ts"
     "worker": "tsx src/workers/queue-worker.ts",
     "worker:dev": "tsx watch src/workers/queue-worker.ts"
   },
@@ -71,6 +74,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "babel-jest": "^30.0.5",
+    "concurrently": "^9.2.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.30",
     "jest-environment-jsdom": "^30.0.5",
