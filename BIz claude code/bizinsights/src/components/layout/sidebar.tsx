@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
+import { useUser, useClerk } from '@clerk/nextjs'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
@@ -31,7 +31,8 @@ interface SidebarProps {
 
 export function Sidebar({ open, setOpen }: SidebarProps) {
   const pathname = usePathname()
-  const { data: session } = useSession()
+  const { user } = useUser()
+  const { signOut } = useClerk()
 
   return (
     <>
@@ -98,15 +99,15 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
           <div className="flex items-center">
             <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
               <span className="text-sm font-medium text-white">
-                {session?.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
               </span>
             </div>
             <div className="ml-3 flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {session?.user?.name || 'User'}
+                {user?.firstName || 'User'}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {session?.user?.email || ''}
+                {user?.emailAddresses?.[0]?.emailAddress || ''}
               </p>
             </div>
             <button
