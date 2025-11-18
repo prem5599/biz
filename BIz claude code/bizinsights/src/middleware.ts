@@ -1,26 +1,24 @@
-import { withAuth } from "next-auth/middleware"
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export default withAuth(
-  function middleware(req) {
-    // Additional middleware logic can go here
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        // Protect dashboard routes
-        if (req.nextUrl.pathname.startsWith('/dashboard')) {
-          return !!token
-        }
-        return true
-      },
-    },
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/auth/signin(.*)",
+  "/auth/signup(.*)",
+  "/auth/error(.*)",
+  "/api/webhooks(.*)",
+]);
+
+export default clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) {
+    await auth.protect();
   }
-)
+});
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/api/organizations/:path*',
-    '/api/integrations/:path*'
-  ]
-}
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
+};

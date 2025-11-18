@@ -1,7 +1,7 @@
 'use client'
 
 import '@/styles/charts.css'
-import { useSession } from 'next-auth/react'
+import { useUser } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { MetricCard } from '@/components/dashboard/metric-card'
@@ -14,6 +14,7 @@ import { CustomerInsightsWidget } from '@/components/dashboard/customer-insights
 import { ProductAnalyticsWidget } from '@/components/dashboard/product-analytics-widget'
 import { RevenueForecastingWidget } from '@/components/dashboard/revenue-forecasting-widget'
 import { QuickActionsPanel } from '@/components/dashboard/quick-actions-panel'
+import { CreateOrganizationForm } from '@/components/organization/create-organization-form'
 import { useCurrentOrganization } from '@/hooks/useOrganization'
 import { useDashboard } from '@/hooks/useDashboard'
 import { useCurrency } from '@/contexts/CurrencyContext'
@@ -21,11 +22,11 @@ import { useQuery } from '@tanstack/react-query'
 import { formatCurrency } from '@/lib/currency'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  BarChart3, 
-  Users, 
-  Package, 
-  TrendingUp, 
+import {
+  BarChart3,
+  Users,
+  Package,
+  TrendingUp,
   DollarSign,
   ShoppingCart,
   Eye,
@@ -33,7 +34,7 @@ import {
 } from 'lucide-react'
 
 export default function Dashboard() {
-  const { data: session, status } = useSession()
+  const { user, isLoaded } = useUser()
   const { organization, isLoading: orgLoading } = useCurrentOrganization()
   const { currency } = useCurrency()
   const { data: dashboardData, isLoading: dashboardLoading, error } = useDashboard(organization?.id || null)
@@ -72,7 +73,7 @@ export default function Dashboard() {
     staleTime: 10 * 60 * 1000, // 10 minutes
   })
 
-  if (status === 'loading' || orgLoading) {
+  if (!isLoaded || orgLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div>Loading...</div>
@@ -80,19 +81,12 @@ export default function Dashboard() {
     )
   }
 
-  if (!session) {
+  if (!user) {
     redirect('/auth/signin')
   }
 
   if (!organization) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">No Organization Found</h2>
-          <p className="text-gray-600">Please create an organization to continue.</p>
-        </div>
-      </div>
-    )
+    return <CreateOrganizationForm />
   }
 
   const formatCurrencyValue = (value: number | string) => {

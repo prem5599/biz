@@ -1,7 +1,7 @@
 'use client'
 
 import '@/styles/charts.css'
-import { useSession } from 'next-auth/react'
+import { useUser } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,7 +26,7 @@ import {
 import { useState } from 'react'
 
 export default function Analytics() {
-  const { data: session, status } = useSession()
+  const { user, isLoaded } = useUser()
   const { organization, isLoading: orgLoading } = useCurrentOrganization()
   const [period, setPeriod] = useState('all')
   const [startDate, setStartDate] = useState('')
@@ -41,7 +41,7 @@ export default function Analytics() {
   )
   const { notification, isOpen, closeNotification, showSuccess, showError, showInfo } = useNotification()
 
-  if (status === 'loading' || orgLoading) {
+  if (!isLoaded || orgLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div>Loading...</div>
@@ -49,7 +49,7 @@ export default function Analytics() {
     )
   }
 
-  if (!session) {
+  if (!user) {
     redirect('/auth/signin')
   }
 
