@@ -222,9 +222,8 @@ async function syncWooCommerce(integration: any, job: Job) {
 }
 
 function decryptToken(encryptedToken: string): string {
-  // For now, return the token as-is
-  // TODO: Implement proper encryption/decryption
-  return encryptedToken;
+  const { decrypt } = require('@/lib/encryption');
+  return decrypt(encryptedToken);
 }
 
 console.log('[Sync Worker] Worker initialized and ready');
