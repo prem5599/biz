@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { QuickConnectCard } from '@/components/integrations/quick-connect-card'
 import { EasyIntegrationWizard } from '@/components/integrations/easy-integration-wizard'
+import { CreateOrganizationForm } from '@/components/organization/create-organization-form'
 import { showToast } from '@/components/ui/toast-helper'
 import {
   ShoppingBag,
@@ -148,7 +149,7 @@ export default function EasyIntegrations() {
   const [integrationStatuses, setIntegrationStatuses] = useState<Record<string, { lastSyncAt?: string; status: string }>>({})
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(isWelcome)
 
-  const { organization } = useCurrentOrganization()
+  const { organization, isLoading: orgLoading } = useCurrentOrganization()
 
   // Load integration statuses
   useEffect(() => {
@@ -184,6 +185,11 @@ export default function EasyIntegrations() {
 
     loadIntegrations()
   }, [organization?.id])
+
+  // Show organization creation form if no organization exists
+  if (!orgLoading && !organization) {
+    return <CreateOrganizationForm />
+  }
 
   const handleConnect = async (integrationId: string, data?: any) => {
     setConnectingIntegrations(prev => new Set(prev).add(integrationId))

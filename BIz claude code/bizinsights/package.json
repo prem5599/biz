@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
-    "cleanup-reports": "tsx scripts/cleanup-reports.ts"
+    "cleanup-reports": "tsx scripts/cleanup-reports.ts",
+    "worker": "tsx src/workers/queue-worker.ts",
+    "worker:dev": "tsx watch src/workers/queue-worker.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.35.1",
@@ -51,8 +53,10 @@
     "react-hot-toast": "^2.5.2",
     "recharts": "^3.1.0",
     "redis": "^5.7.0",
+    "resend": "^6.4.2",
     "simple-statistics": "^7.8.8",
     "stripe": "^18.3.0",
+    "svix": "^1.81.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",

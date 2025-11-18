@@ -14,6 +14,7 @@ import { CustomerInsightsWidget } from '@/components/dashboard/customer-insights
 import { ProductAnalyticsWidget } from '@/components/dashboard/product-analytics-widget'
 import { RevenueForecastingWidget } from '@/components/dashboard/revenue-forecasting-widget'
 import { QuickActionsPanel } from '@/components/dashboard/quick-actions-panel'
+import { CreateOrganizationForm } from '@/components/organization/create-organization-form'
 import { useCurrentOrganization } from '@/hooks/useOrganization'
 import { useDashboard } from '@/hooks/useDashboard'
 import { useCurrency } from '@/contexts/CurrencyContext'
@@ -21,11 +22,11 @@ import { useQuery } from '@tanstack/react-query'
 import { formatCurrency } from '@/lib/currency'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  BarChart3, 
-  Users, 
-  Package, 
-  TrendingUp, 
+import {
+  BarChart3,
+  Users,
+  Package,
+  TrendingUp,
   DollarSign,
   ShoppingCart,
   Eye,
@@ -85,14 +86,7 @@ export default function Dashboard() {
   }
 
   if (!organization) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">No Organization Found</h2>
-          <p className="text-gray-600">Please create an organization to continue.</p>
-        </div>
-      </div>
-    )
+    return <CreateOrganizationForm />
   }
 
   const formatCurrencyValue = (value: number | string) => {
