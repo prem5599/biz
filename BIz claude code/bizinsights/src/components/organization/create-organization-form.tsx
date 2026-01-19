@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,7 +12,7 @@ import { showToast } from '@/components/ui/toast-helper'
 
 export function CreateOrganizationForm() {
   const router = useRouter()
-  const { user } = useUser()
+  const { data: session } = useSession()
   const [isCreating, setIsCreating] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -54,8 +54,7 @@ export function CreateOrganizationForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name.trim(),
-          slug: formData.slug.trim(),
-          userId: user?.id
+          slug: formData.slug.trim()
         })
       })
 

@@ -11,7 +11,7 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -54,11 +54,33 @@ export async function POST(
       console.warn('Failed to parse request body, using defaults:', error)
     }
 
-    // Temporarily create mock insights for testing
-    // TODO: Replace with real InsightsEngine once working
-    const insights = createMockInsights(organizationId)
+    // Use real InsightsEngine to generate insights from actual data
+    const engine = new InsightsEngine(organizationId, {
+      cacheEnabled: true,
+      enableForecasting: options.includeForecasts !== false,
+      confidenceThreshold: options.minConfidence || 0.6
+    })
 
-    // Use simple business profile defaults
+    let insights: InsightData[] = []
+    let forecastInsights: InsightData[] = []
+
+    try {
+      // generateInsights returns InsightData[] directly
+      insights = await engine.generateInsights('30d', options)
+      // forecastInsights would be separate if forecasting was implemented
+    } catch (error) {
+      console.warn('Error generating insights from engine, returning empty:', error)
+      // Return empty insights when no data available
+      insights = []
+      forecastInsights = []
+    }
+
+    // Get business profile from organization
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true }
+    })
+
     const businessProfile = {
       industry: 'e-commerce',
       businessType: 'small business',
@@ -102,8 +124,8 @@ export async function POST(
   } catch (error) {
     console.error('Error generating insights:', error)
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to generate insights',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       },
@@ -112,117 +134,7 @@ export async function POST(
   }
 }
 
-// Mock insights function for testing
-function createMockInsights(organizationId: string): InsightData[] {
-  return [
-    {
-      id: `trend-${Date.now()}-1`,
-      organizationId,
-      type: 'trend',
-      title: 'Revenue Growth Trend Detected',
-      description: 'Your revenue has shown consistent growth over the past 30 days with a 15.3% increase compared to the previous period. This positive trend indicates strong business momentum.',
-      recommendation: 'Continue current marketing strategies and consider scaling successful campaigns to maximize this growth trajectory.',
-      impactScore: 8.5,
-      confidence: 0.92,
-      affectedMetrics: ['revenue', 'growth'],
-      timeframe: '30 days',
-      dataPoints: 30,
-      createdAt: new Date(),
-      metadata: {
-        source: 'mock_engine',
-        algorithm: 'trend_analysis',
-        version: '1.0.0',
-        trendDirection: 'up',
-        priority: 'high',
-        severity: 'medium'
-      }
-    },
-    {
-      id: `anomaly-${Date.now()}-2`,
-      organizationId,
-      type: 'anomaly',
-      title: 'Unusual Order Volume Spike',
-      description: 'Detected a 45% increase in order volume on recent weekends compared to typical patterns. This anomaly suggests potential campaign success or external factors driving demand.',
-      recommendation: 'Investigate the cause of increased weekend orders and ensure inventory levels can support continued demand.',
-      impactScore: 7.2,
-      confidence: 0.88,
-      affectedMetrics: ['orders', 'conversion_rate'],
-      timeframe: '14 days',
-      dataPoints: 14,
-      createdAt: new Date(),
-      metadata: {
-        source: 'mock_engine',
-        algorithm: 'anomaly_detection',
-        version: '1.0.0',
-        priority: 'medium',
-        severity: 'low'
-      }
-    },
-    {
-      id: `recommendation-${Date.now()}-3`,
-      organizationId,
-      type: 'recommendation',
-      title: 'Optimize Customer Acquisition Cost',
-      description: 'Analysis shows your customer acquisition cost has increased by 12% while customer lifetime value remains stable, potentially impacting profitability.',
-      recommendation: 'Review and optimize advertising spend across channels. Focus budget on highest-performing channels and improve conversion rates on underperforming ones.',
-      impactScore: 6.8,
-      confidence: 0.85,
-      affectedMetrics: ['cac', 'ltv', 'marketing_spend'],
-      timeframe: '60 days',
-      dataPoints: 60,
-      createdAt: new Date(),
-      metadata: {
-        source: 'mock_engine',
-        algorithm: 'performance_analysis',
-        version: '1.0.0',
-        priority: 'medium',
-        severity: 'medium'
-      }
-    },
-    {
-      id: `performance-${Date.now()}-4`,
-      organizationId,
-      type: 'performance',
-      title: 'Strong Mobile Conversion Performance',
-      description: 'Mobile traffic conversion rate has improved by 23% over the last 45 days, now outperforming desktop conversion rates.',
-      recommendation: 'Invest in mobile experience optimization and consider mobile-first marketing strategies to capitalize on this trend.',
-      impactScore: 7.5,
-      confidence: 0.91,
-      affectedMetrics: ['mobile_conversion', 'traffic_sources'],
-      timeframe: '45 days',
-      dataPoints: 45,
-      createdAt: new Date(),
-      metadata: {
-        source: 'mock_engine',
-        algorithm: 'channel_analysis',
-        version: '1.0.0',
-        priority: 'high',
-        severity: 'low'
-      }
-    },
-    {
-      id: `alert-${Date.now()}-5`,
-      organizationId,
-      type: 'alert',
-      title: 'Critical: Payment Processing Issues',
-      description: 'Detected elevated payment failure rates (8.5%) over the past 3 days, significantly above the normal 2.1% baseline.',
-      recommendation: 'Immediately contact payment processor to investigate issues. Consider activating backup payment methods to minimize revenue loss.',
-      impactScore: 9.2,
-      confidence: 0.96,
-      affectedMetrics: ['payment_success_rate', 'revenue', 'conversion_rate'],
-      timeframe: '3 days',
-      dataPoints: 3,
-      createdAt: new Date(),
-      metadata: {
-        source: 'mock_engine',
-        algorithm: 'real_time_monitoring',
-        version: '1.0.0',
-        priority: 'critical',
-        severity: 'critical'
-      }
-    }
-  ]
-}
+
 
 // Simplified helper functions
 
@@ -315,7 +227,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

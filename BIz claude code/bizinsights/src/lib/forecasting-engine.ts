@@ -72,7 +72,7 @@ export class ForecastingEngine {
     )
 
     // Calculate confidence based on data consistency and trend strength
-    const confidence = Math.min(0.95, Math.max(0.3, 
+    const confidence = Math.min(0.95, Math.max(0.3,
       regression.rSquared * 0.7 + seasonalForecast.confidence * 0.3
     ))
 
@@ -81,10 +81,10 @@ export class ForecastingEngine {
     const earlyValues = values.slice(0, 6)
     const recentAvg = recentValues.reduce((sum, val) => sum + val, 0) / recentValues.length
     const earlyAvg = earlyValues.reduce((sum, val) => sum + val, 0) / earlyValues.length
-    
+
     let trend: 'increasing' | 'decreasing' | 'stable' = 'stable'
     const changePercent = ((recentAvg - earlyAvg) / earlyAvg) * 100
-    
+
     if (changePercent > 5) trend = 'increasing'
     else if (changePercent < -5) trend = 'decreasing'
 
@@ -243,8 +243,8 @@ export class ForecastingEngine {
     // Revenue concentration risk
     if (historicalData.revenue) {
       const revenueData = historicalData.revenue.map(d => d.value)
-      const revenueVolatility = StatisticalAnalyzer.calculateStandardDeviation(revenueData) / 
-                               (revenueData.reduce((sum, val) => sum + val, 0) / revenueData.length)
+      const revenueVolatility = StatisticalAnalyzer.calculateStandardDeviation(revenueData) /
+        (revenueData.reduce((sum, val) => sum + val, 0) / revenueData.length)
 
       if (revenueVolatility > 0.3) {
         risks.push({
@@ -278,7 +278,7 @@ export class ForecastingEngine {
     if (businessProfile.businessType === 'saas' && historicalData.customers) {
       const customerData = historicalData.customers.map(d => d.value)
       const customerGrowthRates = []
-      
+
       for (let i = 1; i < customerData.length; i++) {
         if (customerData[i - 1] > 0) {
           customerGrowthRates.push((customerData[i] - customerData[i - 1]) / customerData[i - 1])
@@ -323,7 +323,7 @@ export class ForecastingEngine {
    */
   private static exponentialSmoothing(data: number[], alpha: number, periods: number): number {
     let smoothedValue = data[0]
-    
+
     for (let i = 1; i < data.length; i++) {
       smoothedValue = alpha * data[i] + (1 - alpha) * smoothedValue
     }
@@ -341,7 +341,7 @@ export class ForecastingEngine {
     businessProfile: BusinessProfile
   ): { value: number; adjustment: number; confidence: number } {
     const seasonalFactors = businessProfile.seasonalityFactors
-    
+
     if (!seasonalFactors || seasonalFactors.length === 0) {
       return { value: baseValue, adjustment: 1, confidence: 0.5 }
     }
@@ -367,49 +367,23 @@ export class ForecastingEngine {
     organizationId: string,
     businessProfile: BusinessProfile
   ): Promise<{
-    revenue: ForecastData
-    customers: ForecastData
+    revenue: ForecastData | null
+    customers: ForecastData | null
     opportunities: ForecastInsight[]
     risks: ForecastInsight[]
     summary: string
   }> {
-    // This would fetch real data in a production environment
-    // For now, we'll use mock data structure
-    
-    const mockRevenueData = Array.from({ length: 24 }, (_, i) => ({
-      value: 10000 + Math.random() * 5000 + i * 500,
-      timestamp: new Date(Date.now() - (24 - i) * 30 * 24 * 60 * 60 * 1000)
-    }))
+    // TODO: Implement real data fetching from the database
+    // This would query DataPoint records for the organization
+    // For now, return empty/null when no data is available
 
-    const mockCustomerData = Array.from({ length: 24 }, (_, i) => ({
-      value: 100 + Math.random() * 50 + i * 5,
-      timestamp: new Date(Date.now() - (24 - i) * 30 * 24 * 60 * 60 * 1000)
-    }))
-
-    const revenue = this.generateRevenueForecast(mockRevenueData, businessProfile)
-    const customers = this.generateCustomerGrowthForecast(mockCustomerData, businessProfile)
-    
-    const currentMetrics = {
-      revenue: mockRevenueData[mockRevenueData.length - 1].value,
-      customers: mockCustomerData[mockCustomerData.length - 1].value,
-      customer_acquisition_rate: 0.08,
-      avg_order_value: 150
-    }
-
-    const opportunities = this.generateMarketOpportunityForecast(currentMetrics, businessProfile)
-    const risks = this.generateRiskForecast(
-      { revenue: mockRevenueData, customers: mockCustomerData },
-      businessProfile
-    )
-
-    const summary = this.generateForecastSummary(revenue, customers, opportunities, risks)
-
+    // Return empty results indicating no forecast data available
     return {
-      revenue,
-      customers,
-      opportunities,
-      risks,
-      summary
+      revenue: null,
+      customers: null,
+      opportunities: [],
+      risks: [],
+      summary: 'Insufficient data available for forecasting. Connect data integrations and sync data to enable forecasting.'
     }
   }
 

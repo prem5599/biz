@@ -46,6 +46,7 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+
 // Core BizInsights models
 model User {
   id            String    @id @default(cuid())
@@ -53,15 +54,13 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  password      String?   // For email/password authentication
+  password      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // NextAuth relations
   accounts Account[]
   sessions Session[]
 
-  // BizInsights relations
   organizationMembers OrganizationMember[]
   userSettings        UserSettings?
   teamInvitations     TeamInvitation[]
@@ -72,16 +71,15 @@ model User {
 }
 
 model Organization {
-  id               String               @id @default(cuid())
+  id               String   @id @default(cuid())
   name             String
-  slug             String               @unique
-  subscriptionTier SubscriptionTier     @default(FREE)
+  slug             String   @unique
+  subscriptionTier String   @default("FREE")
   billingEmail     String?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  isDeleted        Boolean              @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  isDeleted        Boolean  @default(false)
   
-  // Relations
   members              OrganizationMember[]
   integrations         Integration[]
   insights             Insight[]
@@ -93,17 +91,15 @@ model Organization {
   auditLogs            AuditLog[]
   alerts               Alert[]
   alertRules           AlertRule[]
-
-  @@index([subscriptionTier])
 }
 
 model OrganizationMember {
-  id             String           @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
   organizationId String
-  role           OrganizationRole @default(MEMBER)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  role           String   @default("MEMBER")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -112,302 +108,199 @@ model OrganizationMember {
 }
 
 model Integration {
-  id             String            @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  platform       IntegrationType
+  platform       String
   accessToken    String
   refreshToken   String?
   tokenExpiresAt DateTime?
-  status         IntegrationStatus @default(CONNECTED)
+  status         String    @default("CONNECTED")
   lastSyncAt     DateTime?
-  metadata       Json?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  metadata       String?
+  config         String?   // Stores service account key/other config as JSON
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   dataPoints   DataPoint[]
 
   @@unique([organizationId, platform])
-  @@index([organizationId, status])
 }
 
 model DataPoint {
-  id             String      @id @default(cuid())
+  id             String   @id @default(cuid())
   integrationId  String
   organizationId String
   metricType     String
   value          Decimal
-  metadata       Json?
+  metadata       String?
   dateRecorded   DateTime
-  createdAt      DateTime    @default(now())
+  createdAt      DateTime @default(now())
 
   integration  Integration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([integrationId, dateRecorded])
-  @@index([organizationId, metricType, dateRecorded])
 }
 
 model Insight {
-  id             String      @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  type           InsightType
+  type           String
   title          String
   description    String
-  impactScore    Int         @default(1)
-  isRead         Boolean     @default(false)
-  metadata       Json?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  impactScore    Int      @default(1)
+  isRead         Boolean  @default(false)
+  metadata       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, impactScore])
-  @@index([organizationId, isRead])
 }
 
 model Report {
-  id             String     @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  type           ReportType
+  type           String
   title          String
-  content        Json
-  format         String     @default("PDF")
+  content        String
+  format         String   @default("PDF")
   pdfUrl         String?
-  generatedAt    DateTime   @default(now())
+  generatedAt    DateTime @default(now())
   periodStart    DateTime
   periodEnd      DateTime
   expiresAt      DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, generatedAt])
-  @@index([expiresAt])
 }
 
+
 model ScheduledReport {
-  id               String                @id @default(cuid())
-  organizationId   String
-  reportType       String
-  frequency        String
-  format           String
-  recipients       String                // JSON array of email addresses
-  isActive         Boolean               @default(true)
-  nextRunDate      DateTime
-  lastRunDate      DateTime?
-  title            String
-  currency         String                @default("USD")
-  includeInsights  Boolean               @default(false)
-  includeForecast  Boolean               @default(false)
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  id              String    @id @default(cuid())
+  organizationId  String
+  reportType      String
+  frequency       String
+  format          String
+  recipients      String
+  isActive        Boolean   @default(true)
+  nextRunDate     DateTime
+  lastRunDate     DateTime?
+  title           String
+  currency        String    @default("USD")
+  includeInsights Boolean   @default(false)
+  includeForecast Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  executions       ReportExecution[]
-
-  @@index([organizationId])
-  @@index([nextRunDate, isActive])
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  executions   ReportExecution[]
 }
 
 model ReportExecution {
-  id                 String           @id @default(cuid())
-  scheduledReportId  String
-  reportId           String?
-  status             String           // SUCCESS, FAILED
-  executedAt         DateTime         @default(now())
-  errorMessage       String?
+  id                String          @id @default(cuid())
+  scheduledReportId String
+  reportId          String?
+  status            String
+  executedAt        DateTime        @default(now())
+  errorMessage      String?
 
-  scheduledReport    ScheduledReport  @relation(fields: [scheduledReportId], references: [id], onDelete: Cascade)
-
-  @@index([scheduledReportId])
-  @@index([executedAt])
+  scheduledReport ScheduledReport @relation(fields: [scheduledReportId], references: [id], onDelete: Cascade)
 }
 
-// User Settings and Preferences
 model UserSettings {
   id        String   @id @default(cuid())
   userId    String   @unique
-  settings  Json     // Store all user preferences as JSON
+  settings  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Organization Settings and Configuration
 model OrganizationSettings {
-  id                String   @id @default(cuid())
-  organizationId    String   @unique
-  settings          Json     // Store all organization settings as JSON
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  settings       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
-// Team Invitations
 model TeamInvitation {
-  id             String           @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
   email          String
-  role           OrganizationRole
-  token          String           @unique
+  role           String
+  token          String    @unique
   expiresAt      DateTime
   acceptedAt     DateTime?
-  createdAt      DateTime         @default(now())
+  createdAt      DateTime  @default(now())
   invitedBy      String
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   inviter      User         @relation(fields: [invitedBy], references: [id])
 
   @@unique([organizationId, email])
-  @@index([email])
-  @@index([token])
 }
 
-// Audit Log for tracking changes
 model AuditLog {
   id             String   @id @default(cuid())
   organizationId String?
   userId         String
-  action         String   // CREATE, UPDATE, DELETE, etc.
-  entityType     String   // USER, ORGANIZATION, INTEGRATION, etc.
+  action         String
+  entityType     String
   entityId       String?
-  oldValues      Json?
-  newValues      Json?
+  oldValues      String?
+  newValues      String?
   ipAddress      String?
   userAgent      String?
   createdAt      DateTime @default(now())
 
   organization Organization? @relation(fields: [organizationId], references: [id])
   user         User          @relation(fields: [userId], references: [id])
-
-  @@index([organizationId, createdAt])
-  @@index([userId, createdAt])
-  @@index([action])
 }
 
-// Alert System
 model Alert {
-  id             String        @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  userId         String?       // Optional: user who should be notified
-  type           AlertType
-  severity       AlertSeverity
-  status         AlertStatus   @default(ACTIVE)
+  userId         String?
+  type           String
+  severity       String
+  status         String    @default("ACTIVE")
   title          String
   description    String
-  metadata       Json?         // Store alert-specific data
-  actionUrl      String?       // URL to take action
-  actionLabel    String?       // Label for action button
+  metadata       String?
+  actionUrl      String?
+  actionLabel    String?
   acknowledgedAt DateTime?
   acknowledgedBy String?
   resolvedAt     DateTime?
   resolvedBy     String?
   dismissedAt    DateTime?
   dismissedBy    String?
-  expiresAt      DateTime?     // Optional expiration
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  acknowledger   User?         @relation("AlertAcknowledger", fields: [acknowledgedBy], references: [id])
-  resolver       User?         @relation("AlertResolver", fields: [resolvedBy], references: [id])
-  dismisser      User?         @relation("AlertDismisser", fields: [dismissedBy], references: [id])
-
-  @@index([organizationId, status, severity])
-  @@index([organizationId, type, createdAt])
-  @@index([status, expiresAt])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  acknowledger User?        @relation("AlertAcknowledger", fields: [acknowledgedBy], references: [id])
+  resolver     User?        @relation("AlertResolver", fields: [resolvedBy], references: [id])
+  dismisser    User?        @relation("AlertDismisser", fields: [dismissedBy], references: [id])
 }
 
 model AlertRule {
-  id             String          @id @default(cuid())
-  organizationId String
-  name           String
-  type           AlertType
-  isEnabled      Boolean         @default(true)
-  conditions     Json            // Store rule conditions
-  thresholds     Json            // Store threshold values
-  severity       AlertSeverity
-  notifyUsers    String?         // JSON array of user IDs to notify
-  cooldownMinutes Int           @default(60) // Prevent spam
-  lastTriggered  DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id              String    @id @default(cuid())
+  organizationId  String
+  name            String
+  type            String
+  isEnabled       Boolean   @default(true)
+  conditions      String
+  thresholds      String
+  severity        String
+  notifyUsers     String?
+  cooldownMinutes Int       @default(60)
+  lastTriggered   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, isEnabled])
-  @@index([type, isEnabled])
-}
-
-// Enums
-enum SubscriptionTier {
-  FREE
-  PRO
-  BUSINESS
-  ENTERPRISE
-}
-
-enum OrganizationRole {
-  OWNER
-  ADMIN
-  MEMBER
-  VIEWER
-}
-
-enum IntegrationType {
-  SHOPIFY
-  STRIPE
-  GOOGLE_ANALYTICS
-  FACEBOOK_ADS
-  WOOCOMMERCE
-}
-
-enum IntegrationStatus {
-  CONNECTED
-  DISCONNECTED
-  ERROR
-  SYNCING
-}
-
-enum InsightType {
-  TREND
-  ANOMALY
-  RECOMMENDATION
-  ALERT
-  PERFORMANCE
-  OPPORTUNITY
-  FORECAST
-}
-
-enum ReportType {
-  WEEKLY
-  MONTHLY
-  QUARTERLY
-  CUSTOM
-}
-
-enum AlertType {
-  INVENTORY
-  PERFORMANCE
-  INTEGRATION
-  CUSTOMER
-  FINANCIAL
-  SECURITY
-  SYSTEM
-}
-
-enum AlertSeverity {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-enum AlertStatus {
-  ACTIVE
-  ACKNOWLEDGED
-  RESOLVED
-  DISMISSED
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }

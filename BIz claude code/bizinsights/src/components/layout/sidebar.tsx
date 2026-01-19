@@ -1,6 +1,6 @@
 'use client'
 
-import { useUser, useClerk } from '@clerk/nextjs'
+import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
@@ -11,13 +11,15 @@ import {
   FileText,
   LinkIcon,
   LogOut,
-  X
+  X,
+  Globe
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Analytics', href: '/dashboard/analytics', icon: PieChart },
+  { name: 'Google Analytics', href: '/dashboard/google-analytics', icon: Globe },
   { name: 'Integrations', href: '/dashboard/integrations', icon: LinkIcon },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText },
   { name: 'Team', href: '/dashboard/team', icon: Users },
@@ -31,8 +33,7 @@ interface SidebarProps {
 
 export function Sidebar({ open, setOpen }: SidebarProps) {
   const pathname = usePathname()
-  const { user } = useUser()
-  const { signOut } = useClerk()
+  const { data: session } = useSession()
 
   return (
     <>
@@ -99,19 +100,19 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
           <div className="flex items-center">
             <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
               <span className="text-sm font-medium text-white">
-                {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+                {session?.user?.name?.charAt(0)?.toUpperCase() || 'U'}
               </span>
             </div>
             <div className="ml-3 flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.firstName || 'User'}
+                {session?.user?.name || 'User'}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {user?.emailAddresses?.[0]?.emailAddress || ''}
+                {session?.user?.email || ''}
               </p>
             </div>
             <button
-              onClick={() => signOut()}
+              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
               className="ml-2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
               title="Sign out"
             >

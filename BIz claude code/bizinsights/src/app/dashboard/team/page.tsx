@@ -1,6 +1,6 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +11,7 @@ import { useTeam } from '@/hooks/useTeam'
 import { Users, UserPlus, Mail, Shield, Crown, User } from 'lucide-react'
 
 export default function Team() {
-  const { user, isLoaded } = useUser()
+  const { data: session, status } = useSession()
   const { organization, isLoading: orgLoading } = useCurrentOrganization()
   const { 
     teamData, 
@@ -23,7 +23,7 @@ export default function Team() {
     cancelInvitation
   } = useTeam(organization?.id || '')
 
-  if (!isLoaded || orgLoading || teamLoading) {
+  if (status === 'loading' || orgLoading || teamLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div>Loading...</div>
@@ -31,7 +31,7 @@ export default function Team() {
     )
   }
 
-  if (!user) {
+  if (status === 'unauthenticated') {
     redirect('/auth/signin')
   }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useAuth } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 
 interface Organization {
   id: string
@@ -38,24 +38,24 @@ async function fetchOrganizations(): Promise<Organization[]> {
   }
 
   const data = await response.json()
-  return data.data
+  return data.data || []
 }
 
 export function useOrganizations() {
-  const { isSignedIn } = useAuth()
+  const { data: session, status } = useSession()
+  const isSignedIn = status === 'authenticated'
 
   return useQuery({
     queryKey: ['organizations'],
     queryFn: fetchOrganizations,
-    enabled: !!isSignedIn,
-    staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes
+    enabled: isSignedIn,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
 export function useCurrentOrganization() {
   const { data: organizations, isLoading, error } = useOrganizations()
   
-  // For now, return the first organization (in a real app, this would be selected by the user)
   const currentOrganization = organizations?.[0] || null
   
   return {

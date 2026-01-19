@@ -1,7 +1,7 @@
 'use client'
 
 import '@/styles/charts.css'
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,7 +26,7 @@ import {
 import { useState } from 'react'
 
 export default function Analytics() {
-  const { user, isLoaded } = useUser()
+  const { data: session, status } = useSession()
   const { organization, isLoading: orgLoading } = useCurrentOrganization()
   const [period, setPeriod] = useState('all')
   const [startDate, setStartDate] = useState('')
@@ -41,7 +41,7 @@ export default function Analytics() {
   )
   const { notification, isOpen, closeNotification, showSuccess, showError, showInfo } = useNotification()
 
-  if (!isLoaded || orgLoading) {
+  if (status === 'loading' || orgLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div>Loading...</div>
@@ -49,7 +49,7 @@ export default function Analytics() {
     )
   }
 
-  if (!user) {
+  if (status === 'unauthenticated') {
     redirect('/auth/signin')
   }
 
@@ -413,13 +413,10 @@ export default function Analytics() {
                   {/* Revenue vs Orders Trend */}
                   <PremiumLineChart
                     title="Revenue & Growth Trend"
-                    data={[
-                      { date: '2025-07-01', value: analytics.totalRevenue * 0.3 },
-                      { date: '2025-07-08', value: analytics.totalRevenue * 0.45 },
-                      { date: '2025-07-15', value: analytics.totalRevenue * 0.6 },
-                      { date: '2025-07-22', value: analytics.totalRevenue * 0.8 },
-                      { date: '2025-07-29', value: analytics.totalRevenue }
-                    ]}
+                    data={analytics.revenueByPeriod?.map(item => ({
+                      date: item.date,
+                      value: item.revenue
+                    })) || []}
                     currency={currency}
                     gradient={true}
                     height={300}
@@ -505,14 +502,10 @@ export default function Analytics() {
                   {/* Revenue Trend Chart */}
                   <PremiumLineChart
                     title="Revenue Trend"
-                    data={analytics.dailyRevenue?.map((item: any) => ({
+                    data={analytics.revenueByPeriod?.map(item => ({
                       date: item.date,
                       value: item.revenue
-                    })) || [
-                      { date: '2025-07-01', value: analytics.totalRevenue * 0.8 },
-                      { date: '2025-07-15', value: analytics.totalRevenue * 0.9 },
-                      { date: '2025-07-29', value: analytics.totalRevenue }
-                    ]}
+                    })) || []}
                     currency={currency}
                     gradient={true}
                     height={300}
@@ -524,11 +517,7 @@ export default function Analytics() {
                     data={analytics.revenueByCurrency?.map((item: any) => ({
                       name: item.currency,
                       value: item.converted
-                    })) || [
-                      { name: 'Shopify', value: analytics.totalRevenue * 0.7 },
-                      { name: 'WooCommerce', value: analytics.totalRevenue * 0.2 },
-                      { name: 'Stripe', value: analytics.totalRevenue * 0.1 }
-                    ]}
+                    })) || []}
                     currency={currency}
                     height={300}
                   />
@@ -537,15 +526,10 @@ export default function Analytics() {
                 {/* Monthly Revenue Comparison */}
                 <PremiumBarChart
                   title="Monthly Revenue Comparison"
-                  data={[
-                    { name: 'Jan', value: analytics.totalRevenue * 0.6 },
-                    { name: 'Feb', value: analytics.totalRevenue * 0.7 },
-                    { name: 'Mar', value: analytics.totalRevenue * 0.8 },
-                    { name: 'Apr', value: analytics.totalRevenue * 0.75 },
-                    { name: 'May', value: analytics.totalRevenue * 0.9 },
-                    { name: 'Jun', value: analytics.totalRevenue * 0.95 },
-                    { name: 'Jul', value: analytics.totalRevenue }
-                  ]}
+                  data={analytics.revenueByPeriod?.map(item => ({
+                    name: item.date,
+                    value: item.revenue
+                  })) || []}
                   currency={currency}
                   height={350}
                 />

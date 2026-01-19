@@ -1,7 +1,7 @@
 'use client'
 
 import '@/styles/charts.css'
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { MetricCard } from '@/components/dashboard/metric-card'
@@ -34,7 +34,7 @@ import {
 } from 'lucide-react'
 
 export default function Dashboard() {
-  const { user, isLoaded } = useUser()
+  const { data: session, status } = useSession()
   const { organization, isLoading: orgLoading } = useCurrentOrganization()
   const { currency } = useCurrency()
   const { data: dashboardData, isLoading: dashboardLoading, error } = useDashboard(organization?.id || null)
@@ -73,7 +73,7 @@ export default function Dashboard() {
     staleTime: 10 * 60 * 1000, // 10 minutes
   })
 
-  if (!isLoaded || orgLoading) {
+  if (status === 'loading' || orgLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div>Loading...</div>
@@ -81,7 +81,7 @@ export default function Dashboard() {
     )
   }
 
-  if (!user) {
+  if (status === 'unauthenticated') {
     redirect('/auth/signin')
   }
 
@@ -108,16 +108,10 @@ export default function Dashboard() {
   const hasActiveIntegrations = dashboardData?.hasActiveIntegrations || false
   const metrics = hasActiveIntegrations && dashboardData?.metrics ? {
     revenue: Number(dashboardData.metrics.revenue) || 0,
-    orders: Math.floor(Number(dashboardData.metrics.orders)) || 0, // Orders must be whole numbers
-    customers: Math.floor(Number(dashboardData.metrics.customers)) || 0, // Customers must be whole numbers
+    orders: Math.floor(Number(dashboardData.metrics.orders)) || 0,
+    customers: Math.floor(Number(dashboardData.metrics.customers)) || 0,
     conversionRate: Number(dashboardData.metrics.conversionRate) || 0
-  } : {
-    // Fallback demo values to match graph data
-    revenue: 3000,
-    orders: 32,
-    customers: 53,
-    conversionRate: 3.5
-  }
+  } : null
 
   // Real data from your integrations - only show when active integrations exist
   const realData = hasActiveIntegrations && dashboardData ? {
@@ -198,7 +192,7 @@ export default function Dashboard() {
             <AdvancedMetricCard
               title="Total Revenue"
               value={formatCurrencyValue(metrics.revenue)}
-              subtitle={hasActiveIntegrations ? "From connected integrations" : "Demo data - Connect store for real metrics"}
+              subtitle="From connected integrations"
               icon={<DollarSign className="h-4 w-4" />}
               status="good"
               insights={["Real data from your store", "Updated automatically"]}
@@ -207,26 +201,13 @@ export default function Dashboard() {
               chartData={dashboardData?.chartData?.revenue?.map((item: any) => ({
                 date: item.date,
                 value: Math.round(item.revenue)
-              })).slice(-7) || (() => {
-                const last7Days = []
-                const now = new Date()
-                const finalValue = metrics.revenue // Use metric card value as final point
-                for (let i = 6; i >= 0; i--) {
-                  const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-                  const dateStr = date.toISOString().split('T')[0]
-                  // Create progression that ends at the metric card value
-                  const progressRatio = (6-i) / 6
-                  const value = Math.round(finalValue * (0.7 + progressRatio * 0.3))
-                  last7Days.push({ date: dateStr, value })
-                }
-                return last7Days
-              })()}
+              })).slice(-7) || []}
               currency={currency}
             />
             <AdvancedMetricCard
               title="Total Orders"
               value={formatNumber(metrics.orders)}
-              subtitle={hasActiveIntegrations ? "From connected integrations" : "Demo data - Connect store for real metrics"}
+              subtitle="From connected integrations"
               icon={<ShoppingCart className="h-4 w-4" />}
               status="good"
               insights={["Real data from your store", "Updated automatically"]}
@@ -235,26 +216,13 @@ export default function Dashboard() {
               chartData={dashboardData?.chartData?.revenue?.map((item: any) => ({
                 date: item.date,
                 value: Math.round(item.orders || 0)
-              })).slice(-7) || (() => {
-                const last7Days = []
-                const now = new Date()
-                const finalValue = metrics.orders // Use metric card value as final point
-                for (let i = 6; i >= 0; i--) {
-                  const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-                  const dateStr = date.toISOString().split('T')[0]
-                  // Create progression that ends at the metric card value
-                  const progressRatio = (6-i) / 6
-                  const value = Math.round(finalValue * (0.7 + progressRatio * 0.3))
-                  last7Days.push({ date: dateStr, value })
-                }
-                return last7Days
-              })()}
+              })).slice(-7) || []}
               currency={currency}
             />
             <AdvancedMetricCard
               title="Total Customers"
               value={formatNumber(metrics.customers)}
-              subtitle={hasActiveIntegrations ? "From connected integrations" : "Demo data - Connect store for real metrics"}
+              subtitle="From connected integrations"
               icon={<UserCheck className="h-4 w-4" />}
               status="good"
               insights={["Real data from your store", "Updated automatically"]}
@@ -263,67 +231,44 @@ export default function Dashboard() {
               chartData={dashboardData?.chartData?.customers?.map((item: any) => ({
                 date: item.date,
                 value: Math.round(item.customers || 0)
-              })).slice(-7) || (() => {
-                // Generate realistic daily customer acquisition data
-                const last7Days = []
-                const now = new Date()
-                for (let i = 6; i >= 0; i--) {
-                  const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-                  const dateStr = date.toISOString().split('T')[0]
-                  // Generate realistic daily new customer counts (5-20 per day)
-                  const dailyCustomers = Math.floor(Math.random() * 15) + 5
-                  last7Days.push({ date: dateStr, value: dailyCustomers })
-                }
-                return last7Days
-              })()}
+              })).slice(-7) || []}
               currency={currency}
             />
             <AdvancedMetricCard
               title="Conversion Rate"
               value={formatPercentage(metrics.conversionRate)}
-              subtitle={hasActiveIntegrations ? "From connected integrations" : "Demo data - Connect store for real metrics"}
+              subtitle="From connected integrations"
               icon={<TrendingUp className="h-4 w-4" />}
               status="good"
               insights={["Real data from your store", "Updated automatically"]}
               trend="up"
               trendPercentage={5.2}
-              chartData={(() => {
-                // For conversion rate, create progression that ends at metric card value
-                const last7Days = []
-                const now = new Date()
-                const finalValue = metrics.conversionRate // Use metric card value as final point
-                for (let i = 6; i >= 0; i--) {
-                  const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-                  const dateStr = date.toISOString().split('T')[0]
-                  // Create progression that ends at the metric card value
-                  const progressRatio = (6-i) / 6
-                  const value = Number((finalValue * (0.8 + progressRatio * 0.2)).toFixed(1))
-                  last7Days.push({ date: dateStr, value: Math.max(0.1, value) })
-                }
-                return last7Days
-              })()}
+              chartData={dashboardData?.chartData?.revenue?.map((item: any) => ({
+                date: item.date,
+                value: item.conversionRate || 0
+              })).slice(-7) || []}
               currency={currency}
             />
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <AdvancedMetricCard
-              title="Connect Integrations"
-              value="No Data"
+              title="Total Revenue"
+              value="--"
               subtitle="Connect your store to see real metrics"
               icon={<DollarSign className="h-4 w-4" />}
               status="neutral"
               insights={["Connect Shopify, WooCommerce, or other platforms", "Get real-time business metrics"]}
             />
             <AdvancedMetricCard
-              title="Connect Integrations"
-              value="No Data"
+              title="Total Orders"
+              value="--"
               subtitle="Connect your store to see real metrics"
               icon={<ShoppingCart className="h-4 w-4" />}
               status="neutral"
             />
             <AdvancedMetricCard
-              title="Connect Integrations"
+              title="Total Customers"
               value="No Data"
               subtitle="Connect your store to see real metrics"
               icon={<UserCheck className="h-4 w-4" />}
@@ -370,18 +315,7 @@ export default function Dashboard() {
                     customers: dashboardData?.chartData?.customers?.map((item: any) => ({
                       date: item.date,
                       value: Math.round(item.customers)
-                    })) || (() => {
-                      // Generate realistic daily customer acquisition data for overview
-                      const last7Days = []
-                      const now = new Date()
-                      for (let i = 6; i >= 0; i--) {
-                        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-                        const dateStr = date.toISOString().split('T')[0]
-                        const dailyCustomers = Math.floor(Math.random() * 15) + 5
-                        last7Days.push({ date: dateStr, value: dailyCustomers })
-                      }
-                      return last7Days
-                    })(),
+                    })) || [],
                     customersTotal: metrics?.customers || 0,
                     customersGrowth: 18.5,
                     conversionRate: metrics?.conversionRate || 0,

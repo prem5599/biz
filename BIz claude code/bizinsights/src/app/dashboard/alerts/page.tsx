@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { AlertCenter } from '@/components/alerts/alert-center'
@@ -10,7 +10,7 @@ import { Alert } from '@/types/alerts'
 import { Loader2 } from 'lucide-react'
 
 export default function AlertsPage() {
-  const { user, isLoaded } = useUser()
+  const { data: session, status } = useSession()
   const { organization, isLoading: orgLoading } = useCurrentOrganization()
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -79,7 +79,7 @@ export default function AlertsPage() {
     fetchAlerts()
   }, [organization?.id])
 
-  if (!isLoaded || orgLoading) {
+  if (status === 'loading' || orgLoading) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
@@ -89,7 +89,7 @@ export default function AlertsPage() {
     )
   }
 
-  if (!user) {
+  if (status === 'unauthenticated') {
     redirect('/auth/signin')
   }
 

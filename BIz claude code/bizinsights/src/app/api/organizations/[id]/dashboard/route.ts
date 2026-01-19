@@ -15,7 +15,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -40,7 +40,7 @@ export async function GET(
 
     // Build where clause - default to all-time data
     const whereClause: any = { organizationId: id }
-    
+
     if (period !== 'all') {
       const now = new Date()
       let startDate: Date
@@ -58,7 +58,7 @@ export async function GET(
         default:
           startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
       }
-      
+
       whereClause.dateRecorded = { gte: startDate }
     }
 
@@ -98,11 +98,11 @@ export async function GET(
 
     console.log(`Found ${dataPoints.length} dataPoints`)
     console.log(`Found ${integrations.length} integrations`)
-    
+
     // Only calculate metrics if there are active integrations
     const activeIntegrations = integrations.filter(i => i.status === 'CONNECTED')
     console.log(`Active integrations: ${activeIntegrations.length}`)
-    
+
     const metrics = activeIntegrations.length > 0 ? calculateMetrics(dataPoints) : {
       revenue: 0,
       orders: 0,
@@ -141,7 +141,7 @@ export async function GET(
 function calculateMetrics(dataPoints: any[]) {
   console.log(`\n📊 CALCULATING METRICS:`)
   console.log(`Total dataPoints: ${dataPoints.length}`)
-  
+
   const metrics = {
     revenue: 0,
     orders: 0,
@@ -154,11 +154,11 @@ function calculateMetrics(dataPoints: any[]) {
   const orderPoints = dataPoints.filter(dp => dp.metricType === 'orders' || dp.metricType === 'orders_total')
   const customerPoints = dataPoints.filter(dp => dp.metricType === 'customers' || dp.metricType === 'customers_total')
   const conversionPoints = dataPoints.filter(dp => dp.metricType === 'conversion_rate')
-  
+
   console.log(`Revenue points: ${revenuePoints.length}`)
   console.log(`Order points: ${orderPoints.length}`)
   console.log(`Customer points: ${customerPoints.length}`)
-  
+
   // Log all unique metric types to see what we actually have
   const uniqueMetricTypes = [...new Set(dataPoints.map(dp => dp.metricType))]
   console.log(`All metric types found:`, uniqueMetricTypes)
@@ -201,28 +201,28 @@ function prepareChartData(dataPoints: any[]) {
   // Group data points by date
   const dataByDate = new Map()
   const customersByDate = new Map()
-  
+
   // Check if we have both individual orders and revenue aggregates
   const hasRevenueAggregate = dataPoints.some(dp => dp.metricType === 'revenue')
   const hasIndividualOrders = dataPoints.some(dp => dp.metricType === 'order')
-  
+
   console.log(`📊 Chart data preparation: hasRevenueAggregate=${hasRevenueAggregate}, hasIndividualOrders=${hasIndividualOrders}`)
-  
+
   // Process all data points and group by date
   dataPoints.forEach(dp => {
     const date = dp.dateRecorded.toISOString().split('T')[0]
-    
+
     if (!dataByDate.has(date)) {
       dataByDate.set(date, { date, revenue: 0, orders: 0 })
     }
-    
+
     if (!customersByDate.has(date)) {
       customersByDate.set(date, { date, customers: 0 })
     }
-    
+
     const dayData = dataByDate.get(date)
     const customerData = customersByDate.get(date)
-    
+
     if (dp.metricType === 'revenue') {
       // Only use revenue aggregates if we don't have individual orders to avoid double counting
       if (!hasIndividualOrders) {
@@ -244,11 +244,11 @@ function prepareChartData(dataPoints: any[]) {
       customerData.customers = Math.floor(Number(dp.value)) || 0
     }
   })
-  
+
   // Generate complete date range for the last 7 days
   const completeRevenueData = generateCompleteDateRange(dataByDate, 7)
   const completeCustomerData = generateCompleteCustomerRange(customersByDate, 7)
-  
+
   console.log(`\n📊 CHART DATA PREVIEW:`)
   completeRevenueData.filter(d => d.orders > 0 || d.revenue > 0).forEach(d => {
     console.log(`${d.date}: ${d.orders} orders, ₹${d.revenue} revenue`)
@@ -256,7 +256,7 @@ function prepareChartData(dataPoints: any[]) {
 
   // Only show traffic data if we have actual traffic data points
   const trafficDataPoints = dataPoints.filter(dp => dp.metricType === 'traffic')
-  const trafficData = trafficDataPoints.length > 0 ? 
+  const trafficData = trafficDataPoints.length > 0 ?
     groupTrafficDataBySource(trafficDataPoints) : []
 
   return {
@@ -270,60 +270,72 @@ function prepareChartData(dataPoints: any[]) {
 function generateCompleteDateRange(dataByDate: Map<string, any>, days: number) {
   const result = []
   const now = new Date()
-  
+
   // Generate last N days
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
     const dateString = date.toISOString().split('T')[0]
-    
+
     // Use existing data if available, otherwise default to zeros
     const dayData = dataByDate.get(dateString) || {
       date: dateString,
       revenue: 0,
       orders: 0
     }
-    
+
     result.push(dayData)
   }
-  
+
   return result
 }
 
 function generateCompleteCustomerRange(customersByDate: Map<string, any>, days: number) {
   const result = []
   const now = new Date()
-  
-  // Generate last N days with realistic daily customer data
+
+  // Generate last N days
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
     const dateString = date.toISOString().split('T')[0]
-    
-    // Use existing data if available, otherwise generate realistic daily customer counts
+
+    // Use existing data if available, otherwise return 0
     const dayData = customersByDate.get(dateString) || {
       date: dateString,
-      customers: Math.floor(Math.random() * 15) + 5 // Random 5-20 new customers per day
+      customers: 0
     }
-    
+
     result.push(dayData)
   }
-  
+
   return result
 }
 
 function groupTrafficDataBySource(trafficDataPoints: any[]) {
   const groupedData: { [key: string]: { source: string, visitors: number, color: string } } = {}
-  
+
   const sourceColors = {
     'Organic Search': '#3b82f6',
-    'Direct': '#10b981', 
+    'Direct': '#10b981',
     'Social Media': '#f59e0b',
     'Email': '#ef4444',
     'Paid Search': '#8b5cf6',
     'Referral': '#06b6d4'
   }
-  
+
   trafficDataPoints.forEach(dp => {
-    const source = dp.source || 'Other'
+    let source = (dp as any).source
+
+    // Try to get source from metadata if not direct property
+    if (!source && dp.metadata) {
+      try {
+        const meta = JSON.parse(dp.metadata)
+        source = meta.source
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+
+    source = source || 'Other'
     if (!groupedData[source]) {
       groupedData[source] = {
         source,
@@ -333,6 +345,6 @@ function groupTrafficDataBySource(trafficDataPoints: any[]) {
     }
     groupedData[source].visitors += Number(dp.value) || 0
   })
-  
+
   return Object.values(groupedData)
 }

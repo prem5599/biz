@@ -26,7 +26,6 @@ interface OAuthConnectCardProps {
     icon: React.ComponentType<any>
     color: string
     bgColor: string
-    features: string[]
     popular?: boolean
     recommended?: boolean
     permissions: string[]
@@ -233,7 +232,7 @@ export function OAuthConnectCard({
               <Button
                 onClick={onConnect}
                 disabled={isConnecting}
-                className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all"
                 size="lg"
               >
                 {isConnecting ? (

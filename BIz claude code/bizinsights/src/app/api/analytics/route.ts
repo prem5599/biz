@@ -7,7 +7,7 @@ import { currencyConverter } from '@/lib/currency'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -115,12 +115,12 @@ async function processAnalyticsData(dataPoints: any[], targetCurrency: string) {
     totalRevenue: 0,
     revenueByPeriod: [] as Array<{ date: string; revenue: number; orders: number }>,
     revenueGrowth: 0,
-    
+
     // Order metrics
     totalOrders: 0,
     averageOrderValue: 0,
     ordersGrowth: 0,
-    
+
     // Customer metrics
     totalCustomers: 0,
     newCustomers: 0,
@@ -128,19 +128,19 @@ async function processAnalyticsData(dataPoints: any[], targetCurrency: string) {
     customerAcquisitionCost: 0,
     customerLifetimeValue: 0,
     customerGrowth: 0,
-    
+
     // Product metrics
     totalProducts: 0,
     topProducts: [] as Array<{ name: string; revenue: number; quantity: number }>,
-    
+
     // Advanced metrics
     conversionRate: 0,
     churnRate: 0,
     returnOnAdSpend: 0,
-    
+
     // Geographic data
     revenueByCountry: [] as Array<{ country: string; revenue: number }>,
-    
+
     // Currency breakdown
     revenueByCurrency: [] as Array<{ currency: string; amount: number; converted: number }>
   }
@@ -149,10 +149,10 @@ async function processAnalyticsData(dataPoints: any[], targetCurrency: string) {
   const revenueByDate = new Map<string, { revenue: number; orders: number }>()
   const customersByDate = new Map<string, number>()
   const ordersByDate = new Map<string, number>()
-  
+
   const productSales = new Map<string, { name: string; revenue: number; quantity: number }>()
   const currencyGroups = new Map<string, number>()
-  
+
   let totalCustomerValue = 0
   let customerCount = 0
 
@@ -165,8 +165,8 @@ async function processAnalyticsData(dataPoints: any[], targetCurrency: string) {
     if (dp.metadata?.currency && dp.metadata.currency !== targetCurrency) {
       try {
         const conversion = await currencyConverter.convertCurrency(
-          dpValue, 
-          dp.metadata.currency, 
+          dpValue,
+          dp.metadata.currency,
           targetCurrency
         )
         convertedValue = conversion.convertedAmount
@@ -178,13 +178,13 @@ async function processAnalyticsData(dataPoints: any[], targetCurrency: string) {
     switch (dp.metricType) {
       case 'revenue':
         metrics.totalRevenue += convertedValue
-        
+
         if (!revenueByDate.has(dateKey)) {
           revenueByDate.set(dateKey, { revenue: 0, orders: 0 })
         }
         const dayRevenue = revenueByDate.get(dateKey)!
         dayRevenue.revenue += convertedValue
-        
+
         // Track currency breakdown
         const currency = dp.metadata?.currency || targetCurrency
         currencyGroups.set(currency, (currencyGroups.get(currency) || 0) + dpValue)
@@ -249,7 +249,7 @@ async function processAnalyticsData(dataPoints: any[], targetCurrency: string) {
   const previous7Days = Array.from(revenueByDate.entries())
     .slice(-14, -7)
     .reduce((sum, [, data]) => sum + data.revenue, 0)
-  
+
   metrics.revenueGrowth = previous7Days > 0 ? ((last7Days - previous7Days) / previous7Days) * 100 : 0
 
   // Prepare time series data
@@ -284,8 +284,8 @@ async function processAnalyticsData(dataPoints: any[], targetCurrency: string) {
 
   // Calculate advanced metrics
   metrics.conversionRate = metrics.totalCustomers > 0 ? (metrics.totalOrders / metrics.totalCustomers) * 100 : 0
-  metrics.churnRate = Math.random() * 5 + 1 // TODO: Calculate actual churn rate
-  metrics.returnOnAdSpend = 4.2 // TODO: Calculate from ad spend data
+  metrics.churnRate = 0 // Requires subscription/repeat purchase data to calculate
+  metrics.returnOnAdSpend = 0 // Requires ad spend integration to calculate
 
   return metrics
 }

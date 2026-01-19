@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "bizinsights-484018",
+  "private_key_id": "2b955f1e279bf722521520b276f1792a3e268e6b",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDgk7Xxgu23zeRo\nqh1w+Jsw7L9DNiDRicOQqlL292YaBBVhEilCeYKOWaDGCadALHeyXwNtC0VXTH//\nKR/h6OipgeIf7Tnn48V1yGo3osqMX216zITowjxD1iLAbzqLbJYxC3dHBDJA2uyJ\nfj70MqFgiftOgvvvxBFAwGkUsYkEtYAA7X8j2wzOAYZ1yfUwz9/lO70xWOzigFfA\nzkh9KNVccoUdHQfF1l/vywD5F+AkT3y70N4PXC1MdhjapIYfuY4K6/RPCEV348yG\nIfuwcqTvrwZm377+ZeL1RmNiiKgAO5h7T6zvymmQLSNgfLyBt8DCxbepL5boxnKq\nzTbc51WBAgMBAAECggEAHtXZQQh3qGmiR4a4FSdlc6HGHy3i8rJmQkpIqvVMNR1D\nbDkopiJ1/SKsUxTHPKX+Z2TpXQMTqclst7XHVWb77y5QxI53iXH6TlJO10XIZt7B\ncv967lShHrVbvy1mjfdCZgiLf5pBZitJGBXYAgKjqtQ3R8/vVLwInGnu47L+u8EI\nHsMS4jPTJuljgk8oH+fQ0PwdTTkwha0fhNFdfyq44J1T87UWvcdMGAxvhLOptCzK\nOvNMKsSR+ukDEKCDJ9m+rZOoDZJStsPARJPS17C530bk6VRyG9LNQHuG2zaHs2an\nGkJOqUZPSs8SrKb3HDQpgMG6DyitJVVJIWOw98wTowKBgQD7q3ohFe71TQuBqbbW\nQ/qs6Ky2+ECvPfswnxJF1iU+pKhQhVJ/jyB3OE1jPQk9lwAOUgIhCWqVVBr+YA5N\n9ndJMWPeDKi948hK67Be4Radq5jPyNPsuAHEzkNvRiij+keH5qrIECRcdqqwU3c8\n1S1KkHzZ7dDdb8HwxSvqFMSEAwKBgQDkcOYKu6tx9ybpMiGlX8wz8f3lmK8oH+oS\nH6zWhtw2vCpKaZaoDVgojAFZI8N17x5m3hB7KVeMZ/ZWTbS8wKPKvJbZL8Va97zM\nSYvCdkwfnk5IBZrzdApUe3R8EAuqlLrTLPML1RvqDAACp+xe4al3JtsSXbyu+YZH\nh0wywEhjKwKBgQD5uwbNnf4o2/L3D3mm1H4C5j+8sEs/mbmQXci8E+uRZcK/ZAyh\nF12X7/6a4w4wV45up2IFdlqVI4hFsvt+0Xs83g3DYbxv8X/nGElDXQgcHRLd3OKu\nm0jmCedQm8XoMYqZiIMfUyVBu19U6P4BF2iB/S5m8l233hYM3RrehQ0cEQKBgQDP\n67pV1o6rgirWYZyiKtlwBjfzu87hFHs118K217Sj1QwhAo3vk4XEEfpAKf8D3oqr\nUj9p+i0HTLC3yK5ShnwOUSxzrblRnN8oiWA9tPKAbNQPVZq9L8cfMebJ7MjRj+Gj\nx+vHv0ZS9m0j/bd0fKyEGMeYpdzQ3ahMfmbqYn0AVQKBgHycQjPq/UbGuN2U+thx\noPtzjZTM/FvNl6awjNN/6tLI2/dEXZLD53HQFcBezsP7CqNhOVMQBIXEJ+2yA6Fv\nEfRgjTRWBKE4tj1aWLL6kTYX/AmBvEco4aPF0myKaz3/P8vzYI+IORpFItEbrgcT\niMdaBmb1kgVh5T3EhHsM+0ZC\n-----END PRIVATE KEY-----\n",
+  "client_email": "bizinsights-analytics@bizinsights-484018.iam.gserviceaccount.com",
+  "client_id": "110586968337967243844",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bizinsights-analytics%40bizinsights-484018.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

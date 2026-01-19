@@ -25,7 +25,8 @@ import {
   ExternalLink,
   Shield,
   Clock,
-  Globe
+  Globe,
+  Upload
 } from 'lucide-react'
 import { useCurrentOrganization } from '@/hooks/useOrganization'
 
@@ -194,6 +195,11 @@ export default function OAuthIntegrations() {
   const [connectingIntegrations, setConnectingIntegrations] = useState<Set<string>>(new Set())
   const [integrationStatuses, setIntegrationStatuses] = useState<Record<string, { lastSyncAt?: string; status: string }>>({})
   
+  // Google Analytics Service Account form
+  const [showGAModal, setShowGAModal] = useState(false)
+  const [gaForm, setGAForm] = useState({ propertyId: '', serviceAccountKey: '' })
+  const [gaConnecting, setGAConnecting] = useState(false)
+  
   const { organization } = useCurrentOrganization()
 
   // Load integration statuses
@@ -213,7 +219,8 @@ export default function OAuthIntegrations() {
         const statuses: Record<string, { lastSyncAt?: string; status: string }> = {}
         
         data.data.integrations.forEach((integration: any) => {
-          const platformId = integration.platform.toLowerCase()
+          let platformId = integration.platform.toLowerCase().replace(/_/g, '-')
+
           if (integration.status === 'CONNECTED') {
             connected.add(platformId)
           }
@@ -235,19 +242,50 @@ export default function OAuthIntegrations() {
     const integration = oauthIntegrations.find(i => i.id === integrationId)
     if (!integration) return
 
-    // For demo purposes, we'll show the authorization dialog
-    // In a real app, this would handle the OAuth flow
+    // For Google Analytics, show Service Account modal directly (OAuth requires verification)
+    if (integrationId === 'google-analytics') {
+      setShowGAModal(true)
+      return
+    }
+
+    // For other integrations, show the authorization dialog
     setSelectedIntegration(integration)
   }
 
   const handleAuthorize = async (authUrl: string) => {
-    if (!selectedIntegration) return
+    if (!selectedIntegration || !organization?.id) return
 
     setConnectingIntegrations(prev => new Set(prev).add(selectedIntegration.id))
     
     try {
-      // In a real app, this would be handled by the OAuth callback
-      // For demo, we'll simulate a successful connection
+      // For Shopify, use the real OAuth flow
+      if (selectedIntegration.id === 'shopify') {
+        // Get the real OAuth URL from our API
+        const response = await fetch('/api/integrations/shopify/oauth/authorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organizationId: organization.id })
+        })
+        
+        const data = await response.json()
+        
+        if (data.success && data.authUrl) {
+          // Redirect to Shopify OAuth in the same window
+          window.location.href = data.authUrl
+          return
+        } else {
+          throw new Error(data.error || 'Failed to get OAuth URL')
+        }
+      }
+      
+      // For Google Analytics, use Service Account method (OAuth requires Google verification)
+      if (selectedIntegration.id === 'google-analytics') {
+        setSelectedIntegration(null)
+        setShowGAModal(true)
+        return
+      }
+      
+      // For other integrations, still simulate for demo
       await new Promise(resolve => setTimeout(resolve, 2000))
       
       setConnectedIntegrations(prev => new Set(prev).add(selectedIntegration.id))
@@ -262,7 +300,7 @@ export default function OAuthIntegrations() {
       showToast.success(`${selectedIntegration.name} connected successfully!`)
     } catch (error) {
       console.error('Connection failed:', error)
-      showToast.error('Connection failed. Please try again.')
+      showToast.error(error instanceof Error ? error.message : 'Connection failed. Please try again.')
     } finally {
       setConnectingIntegrations(prev => {
         const next = new Set(prev)
@@ -332,6 +370,79 @@ export default function OAuthIntegrations() {
     }
   }
 
+  // Handle JSON file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const content = event.target?.result as string
+      try {
+        // Validate it's JSON
+        JSON.parse(content)
+        setGAForm(prev => ({ ...prev, serviceAccountKey: content }))
+        showToast.success('JSON key file loaded successfully')
+      } catch {
+        showToast.error('Invalid JSON file')
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  // Google Analytics Service Account connect
+  const handleGAConnect = async () => {
+    if (!gaForm.propertyId || !gaForm.serviceAccountKey) {
+      showToast.error('Please fill in all fields')
+      return
+    }
+
+    // Validate property ID format
+    if (!/^\d+$/.test(gaForm.propertyId)) {
+      showToast.error('Property ID should be a number')
+      return
+    }
+
+    // Validate JSON format
+    try {
+      JSON.parse(gaForm.serviceAccountKey)
+    } catch {
+      showToast.error('Service account key must be valid JSON')
+      return
+    }
+
+    setGAConnecting(true)
+    
+    try {
+      const response = await fetch('/api/integrations/google-analytics/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: organization?.id,
+          propertyId: gaForm.propertyId,
+          serviceAccountKey: gaForm.serviceAccountKey
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setConnectedIntegrations(prev => new Set(prev).add('google-analytics'))
+        setShowGAModal(false)
+        setGAForm({ propertyId: '', serviceAccountKey: '' })
+        showToast.success('Google Analytics connected successfully!')
+        loadIntegrations()
+      } else {
+        showToast.error(`Connection failed: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Error connecting Google Analytics:', error)
+      showToast.error('Failed to connect Google Analytics')
+    } finally {
+      setGAConnecting(false)
+    }
+  }
+
   const filteredIntegrations = oauthIntegrations
     .filter(integration => {
       if (selectedCategory !== 'all' && integration.category !== selectedCategory) {
@@ -370,7 +481,7 @@ export default function OAuthIntegrations() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-blue-600 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
                 <ExternalLink className="w-5 h-5 text-white" />
               </div>
               One-Click Integrations
@@ -386,7 +497,7 @@ export default function OAuthIntegrations() {
             </Badge>
             <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-500"
+                className="h-full bg-blue-600 transition-all duration-500"
                 style={{ width: `${(connectedCount / totalIntegrations) * 100}%` }}
               />
             </div>
@@ -394,7 +505,7 @@ export default function OAuthIntegrations() {
         </div>
 
         {/* Benefits Banner */}
-        <Card className="border-2 border-dashed border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
+        <Card className="border border-blue-100 bg-blue-50/50">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -536,6 +647,90 @@ export default function OAuthIntegrations() {
           onClose={() => setSelectedIntegration(null)}
           onAuthorize={handleAuthorize}
         />
+      )}
+
+      {/* Google Analytics Service Account Modal */}
+      {showGAModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                <BarChart className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Connect Google Analytics</h3>
+                <p className="text-sm text-muted-foreground">Using Service Account</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">GA4 Property ID</label>
+                <Input
+                  placeholder="e.g. 471494358"
+                  value={gaForm.propertyId}
+                  onChange={(e) => setGAForm(prev => ({ ...prev, propertyId: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Found in Analytics → Admin → Property Settings</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Service Account Key (JSON)</label>
+                <div className="space-y-3">
+                  <div className="relative border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-center cursor-pointer bg-gray-50/50">
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div className="flex flex-col items-center gap-2 pointer-events-none">
+                       <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                         <Upload className="w-5 h-5 text-blue-600" />
+                       </div>
+                       <div className="text-sm font-medium">Click to upload JSON file</div>
+                       <div className="text-xs text-muted-foreground">Supports .json files</div>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-gray-200 dark:border-gray-700" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white dark:bg-gray-900 px-2 text-muted-foreground">Or paste content</span>
+                    </div>
+                  </div>
+
+                  <textarea
+                    className="w-full h-32 px-3 py-2 border rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder='Paste the entire JSON key file contents here...'
+                    value={gaForm.serviceAccountKey}
+                    onChange={(e) => setGAForm(prev => ({ ...prev, serviceAccountKey: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowGAModal(false)}
+                disabled={gaConnecting}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                onClick={handleGAConnect}
+                disabled={gaConnecting}
+              >
+                {gaConnecting ? 'Connecting...' : 'Connect'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </DashboardLayout>
   )

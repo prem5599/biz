@@ -52,19 +52,27 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Verify state matches session
-    const storedState = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        settings: {
-          select: { settings: true }
-        }
+    // Get user by email
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email! },
+      include: {
+        userSettings: true
       }
     });
 
-    const expectedState = (storedState?.settings?.settings as any)?.shopifyOAuthState;
+    if (!user) {
+      return NextResponse.redirect(new URL('/auth/signin', request.url));
+    }
 
-    if (state !== expectedState) {
+    // Parse stored settings (it's a JSON string)
+    const storedSettings = user.userSettings?.settings
+      ? JSON.parse(user.userSettings.settings as string)
+      : {};
+
+    const expectedState = storedSettings?.shopifyOAuthState;
+
+    if (!expectedState || state !== expectedState) {
+      console.error('State mismatch:', { received: state, expected: expectedState });
       return NextResponse.json(
         { error: 'Invalid state parameter' },
         { status: 403 }
@@ -118,8 +126,8 @@ export async function GET(request: NextRequest) {
     // ✅ SECURITY: Encrypt the access token before storing
     const encryptedToken = encrypt(accessToken);
 
-    // Get organization from state or user's first organization
-    const organizationId = (storedState?.settings?.settings as any)?.shopifyOrgId;
+    // Get organization from stored state
+    const organizationId = storedSettings?.shopifyOrgId;
 
     if (!organizationId) {
       return NextResponse.json(
@@ -141,32 +149,34 @@ export async function GET(request: NextRequest) {
         platform: 'SHOPIFY',
         accessToken: encryptedToken,
         status: 'CONNECTED',
-        metadata: {
+        metadata: JSON.stringify({
           shopDomain: shop.replace('.myshopify.com', ''),
           scope: tokenData.scope,
           connectedAt: new Date().toISOString(),
-        },
+        }),
       },
       update: {
         accessToken: encryptedToken,
         status: 'CONNECTED',
-        metadata: {
+        metadata: JSON.stringify({
           shopDomain: shop.replace('.myshopify.com', ''),
           scope: tokenData.scope,
           reconnectedAt: new Date().toISOString(),
-        },
+        }),
       },
     });
 
     // Clear OAuth state from user settings
+    const clearedSettings = {
+      ...storedSettings,
+      shopifyOAuthState: null,
+      shopifyOrgId: null,
+    };
+
     await prisma.userSettings.update({
-      where: { userId: session.user.id },
+      where: { userId: user.id },
       data: {
-        settings: {
-          ...(storedState?.settings?.settings as any),
-          shopifyOAuthState: null,
-          shopifyOrgId: null,
-        },
+        settings: JSON.stringify(clearedSettings),
       },
     });
 

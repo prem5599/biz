@@ -1,6 +1,6 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function Reports() {
-  const { user, isLoaded } = useUser()
+  const { data: session, status } = useSession()
   const { organization, isLoading: orgLoading } = useCurrentOrganization()
   const { currency } = useCurrency()
   
@@ -226,7 +226,7 @@ export default function Reports() {
     }
   }, [organization?.id])
 
-  if (!isLoaded || orgLoading) {
+  if (status === 'loading' || orgLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div>Loading...</div>
@@ -234,7 +234,7 @@ export default function Reports() {
     )
   }
 
-  if (!user) {
+  if (status === 'unauthenticated') {
     redirect('/auth/signin')
   }
 

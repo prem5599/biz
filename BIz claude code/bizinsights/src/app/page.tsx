@@ -1,6 +1,6 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { BarChart3 } from 'lucide-react'
@@ -8,16 +8,16 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
 export default function Home() {
-  const { user, isLoaded } = useUser()
+  const { data: session, status } = useSession()
   const router = useRouter()
 
   useEffect(() => {
-    if (isLoaded && user) {
+    if (status === 'authenticated' && session) {
       router.push('/dashboard')
     }
-  }, [user, isLoaded, router])
+  }, [session, status, router])
 
-  if (!isLoaded) {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div>Loading...</div>
